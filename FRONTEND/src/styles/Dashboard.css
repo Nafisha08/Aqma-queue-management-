@@ -1378,3 +1378,25 @@ body {
     width: 100%;
   }
 }
+/* ✅ FIX: Cash Report full width — management-section restrictions bypass */
+.cash-report-section {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+  overflow-x: auto;
+}
+
+.cash-report-section .cash-report-container {
+  min-width: unset;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.cash-report-section .summary-cards {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 20px !important;
+  width: 100% !important;
+}

@@ -22,12 +22,12 @@ function VendorDashboard({ username, vendorId, onLogout }) {
 
   const handleSectionChange = (section) => {
     setActiveSection(section)
-    closeMobileMenu() // Close menu when section is selected
+    closeMobileMenu()
   }
 
   return (
     <div className="dashboard-container">
-      {/* Mobile Overlay - Click to close menu */}
+      {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
           className="mobile-nav-overlay active"
@@ -35,12 +35,12 @@ function VendorDashboard({ username, vendorId, onLogout }) {
         ></div>
       )}
 
-      {/* Hamburger Menu Button - Only visible on mobile */}
+      {/* Hamburger Menu Button */}
       <button className="hamburger-menu" onClick={toggleMobileMenu}>
         {isMobileMenuOpen ? '✕' : '☰'}
       </button>
 
-      {/* Sidebar with mobile-open class */}
+      {/* Sidebar */}
       <div className={`dashboard-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="dashboard-header">
           <div>
@@ -146,8 +146,9 @@ function VendorDashboard({ username, vendorId, onLogout }) {
           </div>
         )}
 
+        {/* ✅ FIX: cash-report-section — full width, no padding restriction */}
         {activeSection === 'cash-report' && (
-          <div className="management-section">
+          <div className="cash-report-section">
             <CashReport vendorId={vendorId} />
           </div>
         )}
