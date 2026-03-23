@@ -18,7 +18,7 @@ import {
   LineElement,
   Filler,
 } from 'chart.js'
-import '../styles/CashReport.css'
+import '../styles/CashReportV2.css'
 
 const API_BASE_URL = 'https://aqma-queue-management-1.onrender.com/api'
 
