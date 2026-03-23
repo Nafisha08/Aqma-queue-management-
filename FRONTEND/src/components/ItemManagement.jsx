@@ -11,26 +11,35 @@ function ItemManagement({ vendorId }) {
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
 
+  // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: ''
   })
 
+  // Get token from localStorage
   const getToken = () => {
     return localStorage.getItem('token') || sessionStorage.getItem('token')
   }
 
+  // Fetch items on component mount
   useEffect(() => {
     fetchItems()
   }, [vendorId])
 
+  // Fetch all items for this vendor
   const fetchItems = async () => {
     setIsLoading(true)
     try {
       const token = getToken()
+
       const response = await axios.get(`${API_URL}/items`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
+
+      console.log('Items fetched:', response.data)
 
       if (response.data.success) {
         setItems(response.data.items)
@@ -40,56 +49,88 @@ function ItemManagement({ vendorId }) {
       }
     } catch (err) {
       setError('Failed to fetch items: ' + (err.response?.data?.message || err.message))
+      console.error('Fetch items error:', err)
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData({ ...formData, [name]: value })
+    setFormData({
+      ...formData,
+      [name]: value
+    })
   }
 
+  // Reset form
   const resetForm = () => {
-    setFormData({ name: '', description: '' })
+    setFormData({
+      name: '',
+      description: ''
+    })
     setEditingItem(null)
   }
 
+  // Open form for creating new item
   const handleAddNew = () => {
     resetForm()
     setShowForm(true)
   }
 
+  // Open form for editing item
   const handleEdit = (item) => {
-    setFormData({ name: item.name, description: item.description || '' })
+    setFormData({
+      name: item.name,
+      description: item.description || ''
+    })
     setEditingItem(item)
     setShowForm(true)
   }
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
+
     try {
       const token = getToken()
-      const itemData = { ...formData }
+      const itemData = {
+        ...formData
+      }
 
       if (editingItem) {
+        // Update existing item
         const response = await axios.put(
           `${API_URL}/items/${editingItem._id}`,
           itemData,
-          { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
         )
+
         if (response.data.success) {
-          fetchItems()
+          fetchItems() // Refresh list
           alert('Item updated successfully!')
         }
       } else {
+        // Create new item
         const response = await axios.post(
           `${API_URL}/items`,
           itemData,
-          { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
         )
+
         if (response.data.success) {
-          fetchItems()
+          fetchItems() // Refresh list
           alert('Item created successfully!')
         }
       }
@@ -99,27 +140,42 @@ function ItemManagement({ vendorId }) {
       setError('')
     } catch (err) {
       setError('Failed to save item: ' + (err.response?.data?.message || err.message))
+      console.error('Save item error:', err)
     }
   }
 
+  // ✅ FIXED: Handle item deletion
   const handleDelete = async (itemId) => {
-    if (!confirm('Are you sure you want to delete this item?')) return
+    if (!confirm('Are you sure you want to delete this item?')) {
+      return
+    }
 
     try {
       const token = getToken()
+
+      console.log('Deleting item with ID:', itemId)
+
+      // Backend expects: DELETE /api/items/:id where id is MongoDB ObjectId
       const response = await axios.delete(`${API_URL}/items/${itemId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
+
+      console.log('Delete response:', response.data)
 
       if (response.data.success) {
         alert('Item deleted successfully!')
-        fetchItems()
+        fetchItems() // Refresh list
         setError('')
       } else {
         setError('Failed to delete item')
       }
     } catch (err) {
-      setError('Failed to delete item: ' + (err.response?.data?.message || err.message))
+      const errorMessage = err.response?.data?.message || err.message
+      setError('Failed to delete item: ' + errorMessage)
+      console.error('Delete item error:', err)
+      console.error('Error response:', err.response)
     }
   }
 
@@ -164,7 +220,10 @@ function ItemManagement({ vendorId }) {
               <button
                 type="button"
                 className="cancel-button"
-                onClick={() => { setShowForm(false); resetForm() }}
+                onClick={() => {
+                  setShowForm(false)
+                  resetForm()
+                }}
               >
                 Cancel
               </button>
@@ -178,8 +237,7 @@ function ItemManagement({ vendorId }) {
       ) : items.length === 0 ? (
         <div className="no-data">No items found. Add your first item!</div>
       ) : (
-        /* ✅ FIX: div tag properly opened with style */
-        <div style={{
+        <div className="table-container" style={{
           maxHeight: '500px',
           overflowY: 'auto',
           overflowX: 'auto',
@@ -208,8 +266,18 @@ function ItemManagement({ vendorId }) {
                   <td>{item.name}</td>
                   <td>{item.description || '-'}</td>
                   <td className="action-buttons">
-                    <button className="edit-button" onClick={() => handleEdit(item)}>Edit</button>
-                    <button className="delete-button" onClick={() => handleDelete(item._id)}>Delete</button>
+                    <button
+                      className="edit-button"
+                      onClick={() => handleEdit(item)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="delete-button"
+                      onClick={() => handleDelete(item._id)}
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}

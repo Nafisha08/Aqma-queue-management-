@@ -433,8 +433,8 @@ body {
   border-color: #94a3b8;
 }
 
-.dashboard__table-container {
-  background: rgba(
+.table-container {
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-radius: 20px;
   overflow: hidden;
