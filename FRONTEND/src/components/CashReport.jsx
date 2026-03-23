@@ -45,7 +45,7 @@ function CashReport({ vendorId: propVendorId }) {
   const [startDate, setStartDate] = useState(new Date())
   const [endDate, setEndDate] = useState(new Date())
   const [isDateSelected, setIsDateSelected] = useState(false)
-  const [viewType, setViewType] = useState('total') // 'total' or 'date'
+  const [viewType, setViewType] = useState('total')
   const [dateRangeError, setDateRangeError] = useState('')
   const [userProfile, setUserProfile] = useState(null)
   const animatedAmounts = useRef({})
@@ -61,8 +61,7 @@ function CashReport({ vendorId: propVendorId }) {
           headers: getAuthHeader()
         })
         if (response.data.success && response.data.user) {
-          const user = response.data.user
-          setUserProfile(user)
+          setUserProfile(response.data.user)
         }
       } catch (error) {
         console.error('Error fetching user profile:', error)
@@ -76,29 +75,17 @@ function CashReport({ vendorId: propVendorId }) {
       setIsLoading(true)
       setError('')
 
-      const params = {
-        type: viewType
-      }
+      const params = { type: viewType }
 
-      if (viewType === 'date') {
-        params.startDate = startDate.toISOString()
-        params.endDate = endDate.toISOString()
-      } else if (viewType === 'range') {
+      if (viewType === 'date' || viewType === 'range') {
         params.startDate = startDate.toISOString()
         params.endDate = endDate.toISOString()
       }
-
-      // ✅ Backend automatically gets vendorId from JWT token
-      // No need to send it in params
-
-      console.log('Fetching cash report with params:', params)
 
       const response = await axios.get(`${API_BASE_URL}/tokens/cash-report`, {
         headers: getAuthHeader(),
         params
       })
-
-      console.log('Cash report API response:', response.data)
 
       if (response.data.success) {
         setReportData(response.data.data)
@@ -123,14 +110,12 @@ function CashReport({ vendorId: propVendorId }) {
     }).format(amount || 0)
   }
 
-  // Validation function for date range
   const validateDateRange = (start, end) => {
     if (!start || !end) return 'Both start and end dates are required'
     if (start >= end) return 'Start date must be before end date'
     return null
   }
 
-  // Handle date range change with validation
   const handleDateRangeChange = (newStartDate, newEndDate) => {
     const error = validateDateRange(newStartDate, newEndDate)
     setDateRangeError(error)
@@ -140,20 +125,14 @@ function CashReport({ vendorId: propVendorId }) {
     }
   }
 
-  // Chart data preparation
   const getPaymentMethodChartData = () => {
     if (!reportData?.paymentMethods) return null
-
     const methods = Object.entries(reportData.paymentMethods)
     return {
       labels: methods.map(([method]) => method.toUpperCase()),
       datasets: [{
         data: methods.map(([, data]) => data.amount),
-        backgroundColor: [
-          '#48bb78', // cash - green
-          '#667eea', // upi - blue
-          '#ed8936', // card - orange
-        ],
+        backgroundColor: ['#48bb78', '#667eea', '#ed8936'],
         borderWidth: 2,
         borderColor: '#ffffff',
       }]
@@ -162,7 +141,6 @@ function CashReport({ vendorId: propVendorId }) {
 
   const getCounterChartData = () => {
     if (!reportData?.counters) return null
-
     return {
       labels: reportData.counters.map(c => `Counter ${c.counterNumber}`),
       datasets: [{
@@ -177,7 +155,6 @@ function CashReport({ vendorId: propVendorId }) {
 
   const getCabinChartData = () => {
     if (!reportData?.cabins) return null
-
     return {
       labels: reportData.cabins.map(c => c.cabinName),
       datasets: [{
@@ -192,7 +169,6 @@ function CashReport({ vendorId: propVendorId }) {
 
   const getItemChartData = () => {
     if (!reportData?.items) return null
-
     return {
       labels: reportData.items.map(i => i.itemName),
       datasets: [{
@@ -210,9 +186,7 @@ function CashReport({ vendorId: propVendorId }) {
   const chartOptions = {
     responsive: true,
     plugins: {
-      legend: {
-        position: 'bottom',
-      },
+      legend: { position: 'bottom' },
       tooltip: {
         callbacks: {
           label: function (context) {
@@ -226,9 +200,7 @@ function CashReport({ vendorId: propVendorId }) {
   const pieOptions = {
     responsive: true,
     plugins: {
-      legend: {
-        position: 'bottom',
-      },
+      legend: { position: 'bottom' },
       tooltip: {
         callbacks: {
           label: function (context) {
@@ -239,46 +211,30 @@ function CashReport({ vendorId: propVendorId }) {
     }
   }
 
-  // Helper functions for Counter vs Cabin matrix
-  const getUniqueCounters = (transactions) => {
-    const counters = [...new Set(transactions.map(t => t.counterNumber))].sort((a, b) => a - b)
-    return counters
-  }
+  const getUniqueCounters = (transactions) =>
+    [...new Set(transactions.map(t => t.counterNumber))].sort((a, b) => a - b)
 
-  const getUniqueCabins = (transactions) => {
-    const cabins = [...new Set(transactions.map(t => t.cabin))].sort()
-    return cabins
-  }
+  const getUniqueCabins = (transactions) =>
+    [...new Set(transactions.map(t => t.cabin))].sort()
 
-  const getTokenCountForCounterCabin = (transactions, counterNumber, cabin) => {
-    return transactions.filter(t => t.counterNumber === counterNumber && t.cabin === cabin).length
-  }
+  const getTokenCountForCounterCabin = (transactions, counterNumber, cabin) =>
+    transactions.filter(t => t.counterNumber === counterNumber && t.cabin === cabin).length
 
-  const getTotalTokensForCounter = (transactions, counterNumber) => {
-    return transactions.filter(t => t.counterNumber === counterNumber).length
-  }
+  const getTotalTokensForCounter = (transactions, counterNumber) =>
+    transactions.filter(t => t.counterNumber === counterNumber).length
 
-  const getTotalTokensForCabin = (transactions, cabin) => {
-    return transactions.filter(t => t.cabin === cabin).length
-  }
+  const getTotalTokensForCabin = (transactions, cabin) =>
+    transactions.filter(t => t.cabin === cabin).length
 
-  // Helper functions for detailed tables
   const getGroupedDataForCounter = (transactions, counterNumber) => {
     const filtered = transactions.filter(t => t.counterNumber === counterNumber)
     const grouped = {}
     filtered.forEach(t => {
       const key = `${t.cabin}-${t.paymentMode}`
       if (!grouped[key]) {
-        grouped[key] = {
-          cabin: t.cabin,
-          paymentMode: t.paymentMode,
-          items: [],
-          totalAmount: 0
-        }
+        grouped[key] = { cabin: t.cabin, paymentMode: t.paymentMode, items: [], totalAmount: 0 }
       }
-      if (t.items && Array.isArray(t.items)) {
-        grouped[key].items.push(...t.items)
-      }
+      if (t.items && Array.isArray(t.items)) grouped[key].items.push(...t.items)
       grouped[key].totalAmount += t.amount || 0
     })
     return Object.values(grouped)
@@ -290,16 +246,9 @@ function CashReport({ vendorId: propVendorId }) {
     filtered.forEach(t => {
       const key = `${t.counterNumber}-${t.paymentMode}`
       if (!grouped[key]) {
-        grouped[key] = {
-          counter: t.counterNumber,
-          paymentMode: t.paymentMode,
-          items: [],
-          totalAmount: 0
-        }
+        grouped[key] = { counter: t.counterNumber, paymentMode: t.paymentMode, items: [], totalAmount: 0 }
       }
-      if (t.items && Array.isArray(t.items)) {
-        grouped[key].items.push(...t.items)
-      }
+      if (t.items && Array.isArray(t.items)) grouped[key].items.push(...t.items)
       grouped[key].totalAmount += t.amount || 0
     })
     return Object.values(grouped)
@@ -343,9 +292,7 @@ function CashReport({ vendorId: propVendorId }) {
                   className="date-input"
                   popperPlacement="down"
                 />
-                <div className="calendar-icon">
-                  📅
-                </div>
+                <div className="calendar-icon">📅</div>
               </div>
               <div className="date-picker-wrapper">
                 <label>End Date & Time</label>
@@ -360,9 +307,7 @@ function CashReport({ vendorId: propVendorId }) {
                   className="date-input"
                   popperPlacement="down"
                 />
-                <div className="calendar-icon">
-                  📅
-                </div>
+                <div className="calendar-icon">📅</div>
               </div>
             </div>
             <button
@@ -374,9 +319,7 @@ function CashReport({ vendorId: propVendorId }) {
             </button>
           </div>
           {dateRangeError && (
-            <div className="error-message">
-              {dateRangeError}
-            </div>
+            <div className="error-message">{dateRangeError}</div>
           )}
         </div>
       )}
@@ -401,36 +344,24 @@ function CashReport({ vendorId: propVendorId }) {
               <h2 className="total-amount-title">Total Amount</h2>
             </div>
             <p className="total-amount-value">{formatCurrency(reportData.overall.totalAmount)}</p>
-            <p className="total-amount-subtitle">
-              {reportData.overall.totalTokens} transactions
-            </p>
+            <p className="total-amount-subtitle">{reportData.overall.totalTokens} transactions</p>
           </div>
 
-          {/* Summary Cards */}
+          {/* ✅ FIX: <br/><div></div> hata diya — yeh grid tod raha tha */}
           <div className="summary-cards">
             <div className="summary-card">
               <div className="card-header">
-                <div className="card-icon total">
-                  <span>📈</span>
-                </div>
-                <div>
-                  <h3 className="card-title">Total Revenue</h3>
-                </div>
+                <div className="card-icon total"><span>📈</span></div>
+                <div><h3 className="card-title">Total Revenue</h3></div>
               </div>
               <p className="card-amount">{formatCurrency(reportData.overall.totalAmount)}</p>
               <p className="card-subtitle">{reportData.overall.totalTokens} transactions</p>
             </div>
 
-            <br /><div></div>
-
             <div className="summary-card">
               <div className="card-header">
-                <div className="card-icon cash">
-                  <span>💵</span>
-                </div>
-                <div>
-                  <h3 className="card-title">Cash Collection</h3>
-                </div>
+                <div className="card-icon cash"><span>💵</span></div>
+                <div><h3 className="card-title">Cash Collection</h3></div>
               </div>
               <p className="card-amount">{formatCurrency(reportData.overall.cashCollection)}</p>
               <p className="card-subtitle">Primary payment method</p>
@@ -438,30 +369,21 @@ function CashReport({ vendorId: propVendorId }) {
 
             <div className="summary-card">
               <div className="card-header">
-                <div className="card-icon upi">
-                  <span>📱</span>
-                </div>
-                <div>
-                  <h3 className="card-title">UPI Collection</h3>
-                </div>
+                <div className="card-icon upi"><span>📱</span></div>
+                <div><h3 className="card-title">UPI Collection</h3></div>
               </div>
               <p className="card-amount">{formatCurrency(reportData.overall.upiCollection)}</p>
               <p className="card-subtitle">Digital payments</p>
             </div>
-            
+
             <div className="summary-card">
               <div className="card-header">
-                <div className="card-icon card">
-                  <span>💳</span>
-                </div>
-                <div>
-                  <h3 className="card-title">Card Collection</h3>
-                </div>
+                <div className="card-icon card"><span>💳</span></div>
+                <div><h3 className="card-title">Card Collection</h3></div>
               </div>
               <p className="card-amount">{formatCurrency(reportData.overall.creditCardCollection)}</p>
               <p className="card-subtitle">Credit/Debit cards</p>
             </div>
-
           </div>
 
           {/* Counter vs Cabin Token Matrix */}
@@ -550,9 +472,7 @@ function CashReport({ vendorId: propVendorId }) {
                                   </li>
                                 ))}
                               </ul>
-                            ) : (
-                              'No items'
-                            )}
+                            ) : 'No items'}
                           </td>
                           <td className="amount-cell">{formatCurrency(group.totalAmount)}</td>
                         </tr>
@@ -562,10 +482,8 @@ function CashReport({ vendorId: propVendorId }) {
                         <td className="amount-cell">
                           <strong>
                             {formatCurrency(
-                              getGroupedDataForCounter(reportData.transactions, counter).reduce(
-                                (sum, group) => sum + group.totalAmount,
-                                0
-                              )
+                              getGroupedDataForCounter(reportData.transactions, counter)
+                                .reduce((sum, group) => sum + group.totalAmount, 0)
                             )}
                           </strong>
                         </td>
@@ -577,7 +495,7 @@ function CashReport({ vendorId: propVendorId }) {
             </div>
           )}
 
-          {/* Cabin-wise Detailed Breakdown (for vendor login) */}
+          {/* Cabin-wise Detailed Breakdown (vendor only) */}
           {userProfile?.role === 'vendor' && reportData.transactions && reportData.transactions.length > 0 && (
             <div className="detailed-tables-section">
               <br />
@@ -613,9 +531,7 @@ function CashReport({ vendorId: propVendorId }) {
                                   </li>
                                 ))}
                               </ul>
-                            ) : (
-                              'No items'
-                            )}
+                            ) : 'No items'}
                           </td>
                           <td className="amount-cell">{formatCurrency(group.totalAmount)}</td>
                         </tr>
@@ -625,10 +541,8 @@ function CashReport({ vendorId: propVendorId }) {
                         <td className="amount-cell">
                           <strong>
                             {formatCurrency(
-                              getGroupedDataForCabin(reportData.transactions, cabin).reduce(
-                                (sum, group) => sum + group.totalAmount,
-                                0
-                              )
+                              getGroupedDataForCabin(reportData.transactions, cabin)
+                                .reduce((sum, group) => sum + group.totalAmount, 0)
                             )}
                           </strong>
                         </td>
@@ -648,21 +562,18 @@ function CashReport({ vendorId: propVendorId }) {
                 <Pie data={getPaymentMethodChartData()} options={pieOptions} />
               </div>
             )}
-
             {getCounterChartData() && (
               <div className="chart-card">
                 <h3 className="chart-title">Counter-wise Collection</h3>
                 <Bar data={getCounterChartData()} options={chartOptions} />
               </div>
             )}
-
             {getCabinChartData() && (
               <div className="chart-card">
                 <h3 className="chart-title">Cabin-wise Collection</h3>
                 <Bar data={getCabinChartData()} options={chartOptions} />
               </div>
             )}
-
             {getItemChartData() && (
               <div className="chart-card">
                 <h3 className="chart-title">Item-wise Sales Trend</h3>
@@ -671,7 +582,7 @@ function CashReport({ vendorId: propVendorId }) {
             )}
           </div>
 
-          {/* Cabin-wise Breakdown (only for vendor login) */}
+          {/* Cabin-wise Breakdown (vendor only) */}
           {userProfile?.role === 'vendor' && reportData.cabins && reportData.cabins.length > 0 && (
             <div className="breakdown-section">
               <h3 className="section-title">🏪 Cabin-wise Collection</h3>
@@ -722,44 +633,49 @@ function CashReport({ vendorId: propVendorId }) {
           {/* Detailed Transactions Table */}
           <div className="table-container">
             <h3>📋 Transaction Details</h3>
-            <table className="transactions-table">
-              <thead>
-                <tr>
-                  <th>Token ID</th>
-                  <th>Daily ID</th>
-                  <th>Customer</th>
-                  <th>Counter</th>
-                  <th>Cabin</th>
-                  <th>Amount</th>
-                  <th>Payment Mode</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.transactions?.map((transaction, index) => (
-                  <tr key={`transaction-${index}`}>
-                    <td>{transaction.tokenId}</td>
-                    <td>{transaction.dailyTokenId}</td>
-                    <td>{transaction.customerName}</td>
-                    <td>{transaction.counterNumber}</td>
-                    <td>{transaction.cabin}</td>
-                    <td className="amount-cell">{formatCurrency(transaction.amount)}</td>
-                    <td>
-                      <span className={`payment-badge ${transaction.paymentMode?.toLowerCase()}`}>
-                        {transaction.paymentMode?.toUpperCase()}
-                      </span>
-                    </td>
-                    <td>{transaction.completedAt ? new Date(transaction.completedAt).toLocaleString() : new Date(transaction.createdAt).toLocaleString()}</td>
+            <div className="table-wrapper">
+              <table className="transactions-table">
+                <thead>
+                  <tr>
+                    <th>Token ID</th>
+                    <th>Daily ID</th>
+                    <th>Customer</th>
+                    <th>Counter</th>
+                    <th>Cabin</th>
+                    <th>Amount</th>
+                    <th>Payment Mode</th>
+                    <th>Time</th>
                   </tr>
-                )) || (
-                    <tr>
-                      <td colSpan="8" style={{ textAlign: 'center', padding: '40px' }}>
-                        No transactions found for the selected period
+                </thead>
+                <tbody>
+                  {reportData.transactions?.map((transaction, index) => (
+                    <tr key={`transaction-${index}`}>
+                      <td>{transaction.tokenId}</td>
+                      <td>{transaction.dailyTokenId}</td>
+                      <td>{transaction.customerName}</td>
+                      <td>{transaction.counterNumber}</td>
+                      <td>{transaction.cabin}</td>
+                      <td className="amount-cell">{formatCurrency(transaction.amount)}</td>
+                      <td>
+                        <span className={`payment-badge ${transaction.paymentMode?.toLowerCase()}`}>
+                          {transaction.paymentMode?.toUpperCase()}
+                        </span>
+                      </td>
+                      <td>{transaction.completedAt
+                        ? new Date(transaction.completedAt).toLocaleString()
+                        : new Date(transaction.createdAt).toLocaleString()}
                       </td>
                     </tr>
-                  )}
-              </tbody>
-            </table>
+                  )) || (
+                      <tr>
+                        <td colSpan="8" style={{ textAlign: 'center', padding: '40px' }}>
+                          No transactions found for the selected period
+                        </td>
+                      </tr>
+                    )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       ) : (
