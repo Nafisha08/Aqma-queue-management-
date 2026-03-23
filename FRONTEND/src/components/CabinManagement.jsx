@@ -85,8 +85,7 @@ function CabinManagement({ vendorId: propVendorId }) {
     try {
       const cabinData = {
         ...formData,
-        isActive: formData.isActive === 'true' // Convert string to boolean
-        // vendorId is now handled by the backend from the authenticated user
+        isActive: formData.isActive === 'true'
       }
 
       let response
@@ -225,7 +224,17 @@ function CabinManagement({ vendorId: propVendorId }) {
           <p>Start by adding your first cabin</p>
         </div>
       ) : (
-        <div className="table-container">
+        // ✅ inline style lagaya — .table-container ka CSS conflict fix
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          overflowX: 'auto',
+          padding: '0',
+          border: 'none',
+          maxHeight: 'none',
+          position: 'static'
+        }}>
           <table className="cabins-table">
             <thead>
               <tr>
