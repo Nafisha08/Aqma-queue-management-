@@ -17,7 +17,7 @@ body {
   display: flex;
   height: 100vh;
   width: 100%;
- overflow-x: visible;
+  overflow: hidden;
   background: #ffffff;
   position: relative;
 }
@@ -433,12 +433,11 @@ body {
   border-color: #94a3b8;
 }
 
-.table-container {
-  background: rgba(255, 255, 255, 0.95);
+.dashboard__table-container {
+  background: rgba(
   backdrop-filter: blur(20px);
   border-radius: 20px;
-  overflow: visible;
-  /* ✅ hidden se visible kiya — table clip nahi hogi */
+  overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -452,8 +451,6 @@ body {
   overflow-x: auto;
   overflow-y: auto;
   max-height: 650px;
-  border-radius: 20px;
-  /* ✅ border-radius yahan move kiya taaki corners sahi dikhein */
 }
 
 .vendor-table {
@@ -1377,26 +1374,4 @@ body {
   .btn-secondary {
     width: 100%;
   }
-}
-/* ✅ FIX: Cash Report full width — management-section restrictions bypass */
-.cash-report-section {
-  width: 100%;
-  max-width: 100%;
-  padding: 0;
-  margin: 0;
-  overflow-x: auto;
-}
-
-.cash-report-section .cash-report-container {
-  min-width: unset;
-  width: 100%;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.cash-report-section .summary-cards {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
-  gap: 20px !important;
-  width: 100% !important;
 }

@@ -1,815 +1,388 @@
-import { useState, useEffect } from 'react'
-import '../styles/Dashboard.css'
-import '../styles/TokenManagement.css'
-import '../styles/CustomerCounterDashboard.css'
-import '../styles/ItemSelection.css'
-import axios from 'axios'
-import ActiveTokensTable from './ActiveTokensTable'
-import TokenHistory from './TokenHistory'
-import CustomerCounterDashboard from './CustomerCounterDashboard'
-import CabinDashboard from './CabinDashboard'
-import CashReport from './CashReport'
-import UserProfile from './UserProfile'
-import { getCurrentSession } from '../services/session'
-import { validatePhone, validateAmount } from '../utils/validation'
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { getCurrentSession } from '../services/session';
 
-function CustomerDashboard({ username, onLogout }) {
-  const [activeSection, setActiveSection] = useState(null)
-  const [showPopup, setShowPopup] = useState(false)
-  const [currentToken, setCurrentToken] = useState(null)
-  const vendorId = 1
-  const [activeCounter, setActiveCounter] = useState(null)
-  const [userProfile, setUserProfile] = useState(null)
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+axios.defaults.baseURL = 'https://aqma-queue-management-1.onrender.com';
 
-  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
-  const closeMobileMenu = () => setIsMobileMenuOpen(false)
+const STYLES = `
+.ccd-wrap { max-width: 1200px; margin: 0 auto; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+.ccd-wrap *, .ccd-wrap *::before, .ccd-wrap *::after { box-sizing: border-box; }
 
-  const handleSectionChange = (section) => {
-    setActiveSection(section)
-    closeMobileMenu()
-  }
+/* HEADER */
+.ccd-header { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); border-radius: 20px; padding: 30px; margin-bottom: 30px; box-shadow: 0 20px 60px rgba(102,126,234,0.3); position: relative; overflow: hidden; }
+.ccd-header-inner { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; gap: 30px; flex-wrap: wrap; }
+.ccd-counter-info { display: flex; align-items: center; gap: 20px; }
+.ccd-counter-icon { font-size: 48px; background: rgba(255,255,255,0.2); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.3); }
+.ccd-counter-info h1 { color: white; font-size: 32px; font-weight: 700; margin: 0; }
+.ccd-counter-info p { color: rgba(255,255,255,0.9); font-size: 16px; margin: 5px 0 0; font-weight: 500; }
+.ccd-header-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+.ccd-quick-stat { background: rgba(255,255,255,0.15); padding: 15px 25px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); text-align: center; min-width: 80px; }
+.ccd-stat-num { display: block; color: white; font-size: 28px; font-weight: 700; }
+.ccd-stat-lbl { color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; display: block; }
 
-  let userRole = userProfile?.role || userProfile?.userType || null
+/* STATS GRID */
+.ccd-stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 20px; margin-bottom: 40px; }
+.ccd-stat-card { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; transition: all 0.3s ease; position: relative; overflow: hidden; }
+.ccd-stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+.ccd-stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+.ccd-stat-card.active::before  { background: #3b82f6; }
+.ccd-stat-card.completed::before { background: #10b981; }
+.ccd-stat-card.cancelled::before { background: #ef4444; }
+.ccd-stat-card.total::before   { background: #8b5cf6; }
+.ccd-stat-icon { font-size: 32px; margin-bottom: 15px; display: block; }
+.ccd-stat-card h3 { font-size: 36px; font-weight: 700; margin: 0; color: #1e293b; }
+.ccd-stat-card p  { color: #64748b; font-size: 14px; font-weight: 500; margin: 5px 0 0; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  if (userRole === 'user' && userProfile) {
-    if (userProfile.counterName && userProfile.counterId) {
-      userRole = 'counter'
-    } else if (userProfile.cabinName && userProfile.cabinId) {
-      userRole = 'cabin'
-    }
-  }
+/* TOKENS SECTION */
+.ccd-section { background: white; border-radius: 16px; padding: 30px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+.ccd-section.active-sec  { border-left: 4px solid #3b82f6; background: linear-gradient(135deg,#eff6ff,#dbeafe); }
+.ccd-section.done-sec    { border-left: 4px solid #10b981; background: linear-gradient(135deg,#f0fdf4,#dcfce7); }
+.ccd-section h3 { font-size: 24px; font-weight: 700; margin: 0 0 25px; color: #1e293b; display: flex; align-items: center; gap: 10px; }
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const { token } = getCurrentSession()
-        if (!token) {
-          console.error('No authentication token found')
-          setIsLoadingProfile(false)
-          return
-        }
+/* EMPTY STATE */
+.ccd-empty { text-align: center; padding: 60px 20px; }
+.ccd-empty-icon { font-size: 64px; margin-bottom: 20px; display: block; }
+.ccd-empty p     { font-size: 18px; color: #64748b; margin: 0 0 10px; font-weight: 500; }
+.ccd-empty small { color: #94a3b8; font-size: 14px; }
 
-        const response = await axios.get('/api/users/profile', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+/* TOKEN BOXES */
+.ccd-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap: 20px; padding: 10px 0; }
+.ccd-token-box { background: linear-gradient(135deg,#667eea,#764ba2); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(102,126,234,0.3); position: relative; overflow: hidden; border: 2px solid transparent; }
+.ccd-token-box:hover { transform: translateY(-8px) scale(1.03); box-shadow: 0 12px 30px rgba(102,126,234,0.5); border-color: rgba(255,255,255,0.5); }
+.ccd-box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; position: relative; z-index: 1; }
+.ccd-box-label { color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.ccd-pulse-dot { width: 12px; height: 12px; background: #ef4444; border-radius: 50%; animation: ccd-pulse 2s infinite; box-shadow: 0 0 10px rgba(239,68,68,0.6); }
+@keyframes ccd-pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.3);opacity:0.7} }
+.ccd-box-num { font-size: 48px; font-weight: 800; color: white; text-align: center; margin: 20px 0; text-shadow: 0 4px 8px rgba(0,0,0,0.3); position: relative; z-index: 1; letter-spacing: 2px; }
+.ccd-box-footer { text-align: center; position: relative; z-index: 1; }
+.ccd-cabin-label { color: rgba(255,255,255,0.95); font-size: 14px; font-weight: 600; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; display: inline-block; }
 
-        if (response.data.success && response.data.user) {
-          const user = response.data.user
-          setUserProfile(user)
-          const counterNumber = parseInt(user.counterName?.match(/(\d+)/)?.[1]) || null
-          setActiveCounter(counterNumber)
+/* CABIN ASSIGN */
+.ccd-assign-sec { width: 100%; position: relative; z-index: 2; }
+.ccd-assign-btn { color: rgba(255,255,255,0.95); font-size: 13px; font-weight: 600; background: rgba(239,68,68,0.3); padding: 6px 12px; border-radius: 20px; display: inline-block; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; transition: all 0.3s ease; }
+.ccd-assign-btn:hover { background: rgba(239,68,68,0.5); transform: scale(1.05); }
+.ccd-dropdown-wrap { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.95); padding: 6px; border-radius: 20px; }
+.ccd-cabin-select { flex: 1; padding: 4px 8px; border: none; background: transparent; color: #1e293b; font-size: 12px; font-weight: 600; cursor: pointer; outline: none; }
+.ccd-cancel-btn { background: rgba(239,68,68,0.2); border: none; color: #ef4444; font-size: 14px; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+.ccd-cancel-btn:hover { background: rgba(239,68,68,0.4); }
 
-          let detectedRole = user.role
-          if (user.role === 'user') {
-            if (user.counterName && user.counterId) {
-              detectedRole = 'counter'
-            } else if (user.cabinName && user.cabinId) {
-              detectedRole = 'cabin'
-            }
-          }
+/* MODAL */
+.ccd-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); animation: ccd-fade 0.3s ease; }
+@keyframes ccd-fade { from{opacity:0} to{opacity:1} }
+.ccd-modal { background: white; border-radius: 20px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: ccd-slideup 0.3s ease; }
+@keyframes ccd-slideup { from{transform:translateY(50px);opacity:0} to{transform:translateY(0);opacity:1} }
+.ccd-modal-head { background: linear-gradient(135deg,#667eea,#764ba2); padding: 25px 30px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+.ccd-modal-head h2 { color: white; margin: 0; font-size: 24px; font-weight: 700; }
+.ccd-close-btn { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
+.ccd-close-btn:hover { background: rgba(255,255,255,0.3); transform: rotate(90deg); }
+.ccd-modal-body { padding: 30px; }
+.ccd-detail-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #e2e8f0; transition: background 0.2s; }
+.ccd-detail-row:hover { background: #f8fafc; }
+.ccd-detail-row:last-child { border-bottom: none; }
+.ccd-detail-label { font-weight: 600; color: #475569; font-size: 14px; }
+.ccd-detail-val   { color: #1e293b; font-size: 15px; font-weight: 500; text-align: right; }
+.ccd-status-badge { padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.ccd-status-badge.active    { background: #dbeafe; color: #1e40af; }
+.ccd-status-badge.completed { background: #dcfce7; color: #166534; }
+.ccd-status-badge.cancelled { background: #fef2f2; color: #991b1b; }
 
-          if (detectedRole === 'cabin') {
-            setActiveSection('cabin')
-          } else if (detectedRole === 'counter') {
-            setActiveSection('counter')
-          } else {
-            setActiveSection('cash')
-          }
+/* COMPLETED LIST */
+.ccd-list { display: grid; gap: 20px; }
+.ccd-token-item { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; transition: all 0.3s ease; position: relative; }
+.ccd-token-item:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.ccd-token-item.completed { border-left: 4px solid #10b981; background: linear-gradient(135deg,#f0fdf4,#f8fafc); }
+.ccd-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.ccd-item-num { font-size: 24px; font-weight: 700; color: white; background: linear-gradient(135deg,#667eea,#764ba2); padding: 8px 16px; border-radius: 8px; display: inline-block; }
+.ccd-time-badge { background: #10b981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.ccd-item-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.ccd-item-info p { margin: 8px 0; font-size: 14px; color: #475569; line-height: 1.5; }
+.ccd-item-info strong { color: #334155; font-weight: 600; display: inline-block; min-width: 80px; }
+.ccd-item-status { position: absolute; top: 20px; right: 20px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+.ccd-item-status.completed { background: #dcfce7; color: #166534; }
 
-          console.log('✅ User profile loaded:', {
-            counter: user.counterName,
-            counterNumber: counterNumber,
-            cabin: user.cabinName,
-            originalRole: user.role,
-            detectedRole: detectedRole,
-            defaultSection: detectedRole === 'cabin' ? 'cabin' : detectedRole === 'counter' ? 'counter' : 'cash'
-          })
-        }
-      } catch (error) {
-        console.error('❌ Error fetching user profile:', error)
-        setActiveSection('cash')
-      } finally {
-        setIsLoadingProfile(false)
-      }
-    }
+/* ERROR */
+.ccd-error { background: #fef2f2; color: #991b1b; padding: 20px; border-radius: 12px; border: 2px solid #fecaca; text-align: center; margin: 20px 0; }
+.ccd-error p { margin: 0 0 15px; font-size: 16px; font-weight: 500; }
+.ccd-error button { background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.ccd-error button:hover { background: #dc2626; }
 
-    fetchUserProfile()
-  }, [])
-
-  if (isLoadingProfile) {
-    return (
-      <div className="dashboard-container">
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: '16px' }}>
-          <div className="loading-spinner" style={{ border: '4px solid #f3f3f3', borderTop: '4px solid #3b82f6', borderRadius: '50%', width: '50px', height: '50px', animation: 'spin 1s linear infinite' }}></div>
-          <p>Loading user profile...</p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="dashboard-container">
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="mobile-nav-overlay active" 
-          onClick={closeMobileMenu}
-        ></div>
-      )}
-
-      {/* Hamburger Menu Button */}
-      <button className="hamburger-menu" onClick={toggleMobileMenu}>
-        {isMobileMenuOpen ? '✕' : '☰'}
-      </button>
-
-      {/* Sidebar */}
-      <div className={`dashboard-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
-        <div className="dashboard-header">
-          <div>
-            <h2>CUSTOMER</h2>
-            <p>{username}</p>
-            {userProfile && (
-              <div style={{ marginTop: '12px', padding: '8px 12px', backgroundColor: '#f0f9ff', borderRadius: '6px', fontSize: '13px' }}>
-                <div style={{ color: '#0369a1', fontWeight: '600' }}>
-                  📍 {userProfile.counterName || userProfile.cabinName || 'No Assignment'}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <nav className="dashboard-nav">
-          {userRole === 'cabin' && (
-            <button
-              className={`nav-button ${activeSection === 'cabin' ? 'active' : ''}`}
-              onClick={() => handleSectionChange('cabin')}
-            >
-              <span>🏠</span> Cabin Dashboard
-            </button>
-          )}
-
-          {userRole === 'counter' && (
-            <button
-              className={`nav-button ${activeSection === 'counter' ? 'active' : ''}`}
-              onClick={() => handleSectionChange('counter')}
-            >
-              <span>🏪</span> Counter Dashboard
-            </button>
-          )}
-
-          {userRole === 'counter' && (
-            <button
-              className={`nav-button ${activeSection === 'token' ? 'active' : ''}`}
-              onClick={() => handleSectionChange('token')}
-            >
-              <span>🎫</span> Token System
-            </button>
-          )}
-
-          {userRole === 'counter' && (
-            <button
-              className={`nav-button ${activeSection === 'history' ? 'active' : ''}`}
-              onClick={() => handleSectionChange('history')}
-            >
-              <span>📜</span> Token History
-            </button>
-          )}
-
-          <button
-            className={`nav-button ${activeSection === 'active' ? 'active' : ''}`}
-            onClick={() => handleSectionChange('active')}
-          >
-            <span>✅</span> Active Tokens
-          </button>
-
-          {userRole !== 'cabin' && (
-            <button
-              className={`nav-button ${activeSection === 'cash' ? 'active' : ''}`}
-              onClick={() => handleSectionChange('cash')}
-            >
-              <span>💰</span> Cash Report
-            </button>
-          )}
-
-          <button
-            className={`nav-button ${activeSection === 'profile' ? 'active' : ''}`}
-            onClick={() => handleSectionChange('profile')}
-          >
-            <span>👤</span> User Profile
-          </button>
-
-          {!userRole && (
-            <div style={{ padding: '12px', backgroundColor: '#fee', borderRadius: '6px', marginTop: '8px', fontSize: '12px', color: '#c00' }}>
-              ⚠️ No role detected! Check backend response.
-            </div>
-          )}
-        </nav>
-
-        <button className="logout-button" onClick={onLogout}>
-          <span>🚪</span> Logout
-        </button>
-      </div>
-
-      {/* Main Content */}
-      <div className="dashboard-content">
-        {activeSection === 'cabin' && (
-          <CabinDashboard activeCabin={1} userProfile={userProfile} />
-        )}
-
-        {activeSection === 'counter' && (
-          <CustomerCounterDashboard activeCounter={activeCounter} userProfile={userProfile} />
-        )}
-
-        {activeSection === 'token' && (
-          <div className="token-form-section">
-            <UserTokenForm
-              vendorId={vendorId}
-              counterId={activeCounter}
-              userProfile={userProfile}
-              onTokenGenerated={(token) => {
-                setCurrentToken(token);
-                setShowPopup(true);
-              }}
-            />
-          </div>
-        )}
-
-        {activeSection === 'history' && (
-          <div className="token-history-section">
-            <TokenHistory vendorId={vendorId} />
-          </div>
-        )}
-
-        {activeSection === 'active' && (
-          <div className="active-tokens-section">
-            <ActiveTokensTable
-              vendorId={vendorId}
-              counterId={activeCounter}
-              userProfile={userProfile}
-              userRole={userRole}
-            />
-          </div>
-        )}
-
-        {activeSection === 'cash' && (
-          <div className="cash-report-section">
-            <CashReport vendorId={vendorId} />
-          </div>
-        )}
-
-        {activeSection === 'profile' && (
-          <div className="user-profile-section">
-            <UserProfile username={username} />
-          </div>
-        )}
-
-        {showPopup && currentToken && (
-          <div className="token-popup">
-            <div className="popup-content">
-              <h2>🎉 Token Generated Successfully!</h2>
-              <div className="token-display">
-                <div className="token-id">{currentToken.dailyTokenId || currentToken.tokenId}</div>
-                <div className="token-status active">ACTIVE</div>
-              </div>
-              <div className="token-details">
-                <p><strong>Customer:</strong><span>{currentToken.customerName}</span></p>
-                <p><strong>Mobile:</strong><span>{currentToken.mobileNo}</span></p>
-                <p><strong>Counter:</strong><span>{currentToken.counterName || currentToken.counterNumber}</span></p>
-                <p><strong>Items:</strong><span>{Array.isArray(currentToken.item) ? currentToken.item.join(', ') : currentToken.item}</span></p>
-                <p><strong>Payment:</strong><span>{currentToken.paymentMode}</span></p>
-                <p><strong>Amount:</strong><span>₹{currentToken.amount}</span></p>
-                {currentToken.cabin && <p><strong>Cabin:</strong><span>{currentToken.cabin.replace('-', ' ')}</span></p>}
-                <p><strong>Status:</strong><span>{currentToken.status?.toUpperCase()}</span></p>
-              </div>
-              <button onClick={() => setShowPopup(false)}>Close</button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
+@media(max-width:768px){
+  .ccd-header-inner { flex-direction: column; }
+  .ccd-counter-info { flex-direction: column; text-align: center; }
+  .ccd-counter-info h1 { font-size: 24px; }
+  .ccd-stats { grid-template-columns: 1fr 1fr; }
+  .ccd-section { padding: 20px; }
+  .ccd-grid { grid-template-columns: repeat(auto-fill,minmax(140px,1fr)); gap: 15px; }
+  .ccd-item-info { grid-template-columns: 1fr; }
 }
+@media(max-width:480px){
+  .ccd-wrap { padding: 10px; }
+  .ccd-stats { grid-template-columns: 1fr; }
+  .ccd-grid { grid-template-columns: repeat(auto-fill,minmax(120px,1fr)); gap: 12px; }
+  .ccd-box-num { font-size: 36px; margin: 15px 0; }
+  .ccd-detail-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .ccd-detail-val { text-align: left; }
+}
+`;
 
-function UserTokenForm({ vendorId, counterId, userProfile, onTokenGenerated }) {
-  const [formData, setFormData] = useState({
-    customerName: '',
-    mobileNo: '',
-    counterNumber: counterId || 1,
-    selectedItems: [],
-    paymentMode: '',
-    amount: '',
-    cabin: userProfile?.cabinName || ''
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
-  const [errors, setErrors] = useState({ mobileNo: '', amount: '' })
-  const [baseCollectionStats, setBaseCollectionStats] = useState({
-    counterName: '',
-    counterNumber: '',
-    totalCollection: '0.00',
-    cashCollection: '0.00',
-    onlineCollection: '0.00',
-    completedTokens: 0
-  })
-  const [collectionStats, setCollectionStats] = useState({
-    counterName: '',
-    counterNumber: '',
-    totalCollection: '0.00',
-    cashCollection: '0.00',
-    onlineCollection: '0.00',
-    completedTokens: 0
-  })
-  const [userCounter, setUserCounter] = useState(null)
-  const [availableItems, setAvailableItems] = useState([])
-  const [selectedCounterId, setSelectedCounterId] = useState(null)
-  const [isDataLoading, setIsDataLoading] = useState(true)
-  const [availableCabins, setAvailableCabins] = useState([])
+function CustomerCounterDashboard({ activeCounter = 1, userProfile }) {
+  const [tokens, setTokens] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedToken, setSelectedToken] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [cabins, setCabins] = useState([]);
+  const [assigningCabin, setAssigningCabin] = useState(null);
+  const [showAssignDropdown, setShowAssignDropdown] = useState(null);
+
+  const getCounterConfig = (n) => {
+    const configs = {
+      1: { id: 1, name: userProfile?.counterName || `Counter ${n}`, description: 'General Services', icon: '🏪' },
+      2: { id: 2, name: userProfile?.counterName || `Counter ${n}`, description: 'Cash Services', icon: '💰' },
+      3: { id: 3, name: userProfile?.counterName || `Counter ${n}`, description: 'Loan Services', icon: '🏦' },
+    };
+    return configs[n] || { ...configs[1], name: userProfile?.counterName || `Counter ${n}` };
+  };
 
   useEffect(() => {
-    if (userProfile && userProfile.cabinName) {
-      setFormData(prev => ({ ...prev, cabin: userProfile.cabinName }))
-    }
-  }, [userProfile])
+    fetchData(true);
+    fetchCabins();
+    const iv = setInterval(() => fetchData(false), 10000);
+    return () => clearInterval(iv);
+  }, []);
 
-  useEffect(() => {
-    let isMounted = true
-    const fetchAllData = async () => {
-      setIsDataLoading(true)
-      try {
-        const { token } = getCurrentSession()
-        if (!token) {
-          if (isMounted) {
-            setError('Session not found. Please login again.')
-            setIsDataLoading(false)
-          }
-          return
-        }
-
-        if (userProfile && userProfile.counterId && userProfile.counterName) {
-          const counterNumber = parseInt(userProfile.counterName.match(/(\d+)/)?.[1]) || 1
-          setUserCounter({
-            id: userProfile.counterId,
-            name: userProfile.counterName,
-            counterNumber: counterNumber
-          })
-          setSelectedCounterId(userProfile.counterId)
-          setFormData(prev => ({ ...prev, counterNumber: counterNumber }))
-        }
-
-        const [cabinsRes, itemsRes, statsRes] = await Promise.all([
-          axios.get('/api/cabins', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('/api/items', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('/api/tokens/collection-stats', { headers: { Authorization: `Bearer ${token}` } })
-        ])
-
-        if (!isMounted) return
-
-        if (cabinsRes.data.success && cabinsRes.data.cabins) {
-          const cabins = cabinsRes.data.cabins
-            .filter(cabin => cabin.isActive)
-            .map(cabin => ({ value: cabin.name, label: cabin.name }))
-          setAvailableCabins(cabins)
-        }
-
-        if (itemsRes.data.success && itemsRes.data.items) {
-          setAvailableItems(itemsRes.data.items)
-        }
-
-        if (statsRes.data.success && statsRes.data.data) {
-          setCollectionStats(statsRes.data.data)
-          setBaseCollectionStats(statsRes.data.data)
-        }
-      } catch (error) {
-        if (isMounted) {
-          setError('Failed to load data: ' + (error.response?.data?.message || error.message))
-        }
-      } finally {
-        if (isMounted) setIsDataLoading(false)
-      }
-    }
-    fetchAllData()
-    return () => { isMounted = false }
-  }, [userProfile])
-
-  useEffect(() => {
-    if (formData.paymentMode && formData.amount) {
-      const amount = parseFloat(formData.amount) || 0
-      const baseTotal = parseFloat(baseCollectionStats.totalCollection) || 0
-      const baseCash = parseFloat(baseCollectionStats.cashCollection) || 0
-      const baseOnline = parseFloat(baseCollectionStats.onlineCollection) || 0
-      let newTotal = baseTotal, newCash = baseCash, newOnline = baseOnline
-
-      if (formData.paymentMode === 'cash') {
-        newTotal += amount
-        newCash += amount
-      } else if (formData.paymentMode === 'card' || formData.paymentMode === 'upi') {
-        newTotal += amount
-        newOnline += amount
-      }
-
-      setCollectionStats({
-        ...baseCollectionStats,
-        totalCollection: newTotal.toFixed(2),
-        cashCollection: newCash.toFixed(2),
-        onlineCollection: newOnline.toFixed(2)
-      })
-    } else {
-      setCollectionStats(baseCollectionStats)
-    }
-  }, [formData.paymentMode, formData.amount, baseCollectionStats])
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData({ ...formData, [name]: value })
-    if (name === 'mobileNo') setErrors(prev => ({ ...prev, mobileNo: validatePhone(value) }))
-    if (name === 'amount') setErrors(prev => ({ ...prev, amount: validateAmount(value) }))
-  }
-
-  const handleNumericKeyPress = (e) => {
-    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End']
-    if (e.ctrlKey || e.metaKey) {
-      if (['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase())) return
-    }
-    if (!/^\d$/.test(e.key) && !allowedKeys.includes(e.key)) e.preventDefault()
-  }
-
-  const handleNumericPaste = (e) => {
-    e.preventDefault()
-    const numericOnly = e.clipboardData.getData('text').replace(/\D/g, '')
-    const target = e.target
-    const newValue = target.value.substring(0, target.selectionStart) + numericOnly + target.value.substring(target.selectionEnd)
-    setFormData(prev => ({ ...prev, mobileNo: newValue }))
-    setErrors(prev => ({ ...prev, mobileNo: validatePhone(newValue) }))
-  }
-
-  const handleItemQuantityChange = (itemId, quantity) => {
-    const item = availableItems.find(i => i.id === itemId)
-    if (!item) return
-
-    setFormData(prev => {
-      const existingItemIndex = prev.selectedItems.findIndex(si => si.itemId === itemId)
-      let newSelectedItems
-
-      if (quantity > 0) {
-        const itemData = { itemId: item.id, name: item.name, price: 0, quantity: quantity }
-        if (existingItemIndex >= 0) {
-          newSelectedItems = [...prev.selectedItems]
-          newSelectedItems[existingItemIndex] = itemData
-        } else {
-          newSelectedItems = [...prev.selectedItems, itemData]
-        }
-      } else {
-        newSelectedItems = prev.selectedItems.filter(si => si.itemId !== itemId)
-      }
-
-      return { ...prev, selectedItems: newSelectedItems }
-    })
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
-    setSuccess(null)
-
-    if (!Array.isArray(formData.selectedItems) || formData.selectedItems.length === 0) {
-      setError('Please select at least one item.')
-      return
-    }
-
-    const phoneError = validatePhone(formData.mobileNo)
-    if (phoneError) {
-      setErrors(prev => ({ ...prev, mobileNo: phoneError }))
-      return
-    }
-
-    const amountError = validateAmount(formData.amount)
-    if (amountError) {
-      setErrors(prev => ({ ...prev, amount: amountError }))
-      return
-    }
-
-    if (!formData.cabin) {
-      setError('Please select a cabin.')
-      return
-    }
-
-    if (!selectedCounterId || !userCounter) {
-      setError('Please select a counter for token generation.')
-      return
-    }
-
-    setIsLoading(true)
-
+  const fetchData = async (initial = false) => {
+    if (initial) setLoading(true);
     try {
-      const { token } = getCurrentSession()
-      if (!token) throw new Error('Authentication token not found. Please login again.')
-
-      const counterNumber = parseInt(userCounter.counterNumber) || 1
-      const itemNames = formData.selectedItems.map(si => `${si.name} (x${si.quantity})`)
-
-      const requestData = {
-        customerName: formData.customerName.trim(),
-        mobileNo: formData.mobileNo.trim(),
-        counterNumber: counterNumber,
-        item: itemNames,
-        paymentMode: formData.paymentMode,
-        amount: parseFloat(formData.amount),
-        cabin: formData.cabin
-      }
-
-      const response = await axios.post('/api/tokens', requestData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      const newToken = response.data.token
-      setSuccess('Token generated successfully!')
-      if (onTokenGenerated) onTokenGenerated(newToken)
-
-      setFormData({
-        customerName: '',
-        mobileNo: '',
-        counterNumber: userCounter.counterNumber,
-        selectedItems: [],
-        paymentMode: '',
-        amount: '',
-        cabin: ''
-      })
-
-      const statsRes = await axios.get('/api/tokens/collection-stats', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-
-      if (statsRes.data.success && statsRes.data.data) {
-        setCollectionStats(statsRes.data.data)
-        setBaseCollectionStats(statsRes.data.data)
-      }
-
-      setIsLoading(false)
-    } catch (error) {
-      let errorMessage = 'Failed to generate token. Please try again.'
-      if (error.response?.status === 400) errorMessage = error.response.data?.message || 'Invalid request data.'
-      else if (error.response?.status === 401) errorMessage = 'Authentication failed. Please login again.'
-      else if (error.response?.data?.message) errorMessage = error.response.data.message
-      else if (error.message) errorMessage = error.message
-
-      setError(errorMessage)
-      setIsLoading(false)
+      const { token } = getCurrentSession();
+      if (!token) throw new Error('Auth token not found');
+      const [activeRes, histRes] = await Promise.all([
+        axios.get('/api/tokens/active', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('/api/tokens/history', { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const active = activeRes.data?.success ? activeRes.data.data : (Array.isArray(activeRes.data) ? activeRes.data : []);
+      const hist = histRes.data?.success ? histRes.data.data : (Array.isArray(histRes.data) ? histRes.data : []);
+      const combined = [...active];
+      hist.forEach(t => { if (!combined.find(c => c._id === t._id || c.tokenId === t.tokenId)) combined.push(t); });
+      setTokens(prev => JSON.stringify(prev) !== JSON.stringify(combined) ? combined : prev);
+      setError('');
+    } catch (e) {
+      if (initial) setError('Failed to fetch counter data. Please try again.');
+    } finally {
+      if (initial) setLoading(false);
     }
-  }
+  };
 
-  if (isDataLoading) {
-    return (
-      <div className="user-token-form">
-        <div className="loading-message" style={{ textAlign: 'center', padding: '40px' }}>
-          <div className="loading-spinner" style={{
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #3b82f6',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 16px'
-          }}></div>
-          <p>Loading user data...</p>
+  const fetchCabins = async () => {
+    try {
+      const { token } = getCurrentSession();
+      const res = await axios.get('/api/cabins', { headers: { Authorization: `Bearer ${token}` } });
+      setCabins(res.data?.success ? res.data.data : (Array.isArray(res.data) ? res.data : []));
+    } catch (e) { }
+  };
+
+  const handleAssignCabin = async (tokenId, cabinId) => {
+    setAssigningCabin(tokenId);
+    try {
+      const { token } = getCurrentSession();
+      const res = await axios.patch(`/api/tokens/${tokenId}/assign-cabin`, { cabinId }, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data?.success) { await fetchData(false); alert('✅ Cabin assigned!'); setShowAssignDropdown(null); }
+    } catch (e) { alert('❌ Failed to assign cabin.'); }
+    finally { setAssigningCabin(null); }
+  };
+
+  const getCounterTokens = () => tokens.filter(t => {
+    const tCtr = t.counterId?._id || t.counterId;
+    const uCtr = userProfile?.counterId;
+    if (tCtr && uCtr) return tCtr === uCtr;
+    if (t.counterNumber !== undefined) return t.counterNumber === activeCounter || t.counterNumber === parseInt(activeCounter);
+    return false;
+  });
+
+  const allCtr = getCounterTokens();
+  const active = allCtr.filter(t => t.status === 'Active');
+  const completed = allCtr.filter(t => t.status === 'Completed' || t.status === 'Cancelled');
+  const stats = {
+    active: allCtr.filter(t => t.status === 'Active').length,
+    completed: allCtr.filter(t => t.status === 'Completed').length,
+    cancelled: allCtr.filter(t => t.status === 'Cancelled').length,
+    total: allCtr.length,
+  };
+
+  const cfg = getCounterConfig(activeCounter);
+
+  if (error) return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
+      <div className="ccd-wrap">
+        <div className="ccd-error">
+          <p>{error}</p>
+          <button onClick={() => fetchData(true)}>Retry</button>
         </div>
       </div>
-    )
-  }
+    </>
+  );
 
   return (
-    <div className="user-token-form">
-      <div className="token-form-header">
-        <div className="header-left">
-          <div className="counter-badge">
-            <div className="counter-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <path d="M9 3v18" />
-              </svg>
-            </div>
-            <div className="counter-details">
-              <span className="counter-label">Counter</span>
-              <span className="counter-number">{userCounter?.name || 'N/A'}</span>
-            </div>
-          </div>
-        </div>
-        <div className="header-right">
-          <div className="collection-cards">
-            <div className="collection-card total">
-              <div className="card-icon">💰</div>
-              <div className="card-content">
-                <span className="card-label">Total Collection</span>
-                <span className="card-value">₹{collectionStats.totalCollection}</span>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
+      <div className="ccd-wrap">
+
+        {/* HEADER */}
+        <div className="ccd-header">
+          <div className="ccd-header-inner">
+            <div className="ccd-counter-info">
+              <div className="ccd-counter-icon">{cfg.icon}</div>
+              <div>
+                <h1>{cfg.name}</h1>
+                <p>{cfg.description}</p>
               </div>
             </div>
-            <div className="collection-card cash">
-              <div className="card-icon">💵</div>
-              <div className="card-content">
-                <span className="card-label">Cash</span>
-                <span className="card-value">₹{collectionStats.cashCollection}</span>
+            <div className="ccd-header-stats">
+              <div className="ccd-quick-stat">
+                <span className="ccd-stat-num">{stats.active}</span>
+                <span className="ccd-stat-lbl">Active</span>
               </div>
-            </div>
-            <div className="collection-card online">
-              <div className="card-icon">📱</div>
-              <div className="card-content">
-                <span className="card-label">Online</span>
-                <span className="card-value">₹{collectionStats.onlineCollection}</span>
+              <div className="ccd-quick-stat">
+                <span className="ccd-stat-num">{stats.completed}</span>
+                <span className="ccd-stat-lbl">Completed</span>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <h2>Generate New Token</h2>
-      {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message">{success}</div>}
-
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="customerName">Customer Name *</label>
-          <input
-            type="text"
-            id="customerName"
-            name="customerName"
-            value={formData.customerName}
-            onChange={handleInputChange}
-            placeholder="Enter customer name"
-            required
-            disabled={isLoading}
-          />
+        {/* STATS */}
+        <div className="ccd-stats">
+          {[
+            { cls: 'active', icon: '🔄', val: stats.active, label: 'Active Tokens' },
+            { cls: 'completed', icon: '✅', val: stats.completed, label: 'Completed' },
+            { cls: 'cancelled', icon: '❌', val: stats.cancelled, label: 'Cancelled' },
+            { cls: 'total', icon: '📊', val: stats.total, label: 'Total Tokens' },
+          ].map(s => (
+            <div key={s.cls} className={`ccd-stat-card ${s.cls}`}>
+              <span className="ccd-stat-icon">{s.icon}</span>
+              <h3>{s.val}</h3>
+              <p>{s.label}</p>
+            </div>
+          ))}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="mobileNo">Mobile No *</label>
-          <input
-            type="tel"
-            id="mobileNo"
-            name="mobileNo"
-            value={formData.mobileNo}
-            onChange={handleInputChange}
-            onKeyDown={handleNumericKeyPress}
-            onPaste={handleNumericPaste}
-            placeholder="Enter 10-digit mobile number"
-            required
-            disabled={isLoading}
-            maxLength="15"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            autoComplete="tel"
-            className={errors.mobileNo ? 'error' : ''}
-          />
-          {errors.mobileNo && <span className="error-text">{errors.mobileNo}</span>}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="cabin">Cabin *</label>
-          <select
-            id="cabin"
-            name="cabin"
-            value={formData.cabin}
-            onChange={handleInputChange}
-            disabled={isLoading || availableCabins.length === 0}
-            required
-          >
-            <option value="">Select cabin</option>
-            {availableCabins.map((cabin) => (
-              <option key={cabin.value} value={cabin.value}>{cabin.label}</option>
-            ))}
-          </select>
-          {availableCabins.length === 0 && (
-            <small style={{
-              display: 'block',
-              marginTop: '6px',
-              color: '#dc3545',
-              fontWeight: '500'
-            }}>
-              ⚠️ No cabins available.
-            </small>
+        {/* ACTIVE TOKENS */}
+        <div className="ccd-section active-sec">
+          <h3>🔔 Active Tokens</h3>
+          {active.length === 0 ? (
+            <div className="ccd-empty">
+              <span className="ccd-empty-icon">🎯</span>
+              <p>No active tokens at the moment</p>
+              <small>All caught up! Waiting for new customers.</small>
+            </div>
+          ) : (
+            <div className="ccd-grid">
+              {active.map(t => (
+                <div key={t._id || t.tokenId} className="ccd-token-box" onDoubleClick={() => { setSelectedToken(t); setShowModal(true); }} title="Double click to view details">
+                  <div className="ccd-box-header">
+                    <span className="ccd-box-label">TOKEN NO.</span>
+                    <span className="ccd-pulse-dot"></span>
+                  </div>
+                  <div className="ccd-box-num">{t.dailyTokenId || t.tokenId}</div>
+                  <div className="ccd-box-footer">
+                    {t.cabin || t.cabinId || t.cabinNo ? (
+                      <span className="ccd-cabin-label">🪑 Cabin {t.cabin || t.cabinId || t.cabinNo}</span>
+                    ) : (
+                      <div className="ccd-assign-sec">
+                        {showAssignDropdown === t._id ? (
+                          <div className="ccd-dropdown-wrap" onClick={e => e.stopPropagation()}>
+                            <select className="ccd-cabin-select" onChange={e => { if (e.target.value) handleAssignCabin(t._id, e.target.value); }} disabled={assigningCabin === t._id}>
+                              <option value="">Select Cabin</option>
+                              {cabins.map(c => <option key={c._id || c.id} value={c._id || c.id}>Cabin {c.cabinNumber || c.name}</option>)}
+                            </select>
+                            <button className="ccd-cancel-btn" onClick={e => { e.stopPropagation(); setShowAssignDropdown(null); }}>✕</button>
+                          </div>
+                        ) : (
+                          <button className="ccd-assign-btn" onClick={e => { e.stopPropagation(); setShowAssignDropdown(t._id); }}>🪑 Cabin N/A</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        <div className="form-group">
-          <label>Assigned Counter *</label>
-          <div style={{
-            padding: '12px 16px',
-            borderRadius: '8px',
-            border: '1px solid #ced4da',
-            backgroundColor: '#f8f9fa',
-            color: '#6b7280',
-            fontSize: '14px'
-          }}>
-            {userCounter ? userCounter.name : 'No counter assigned'}
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label>Service/Items *</label>
-          <div className="item-selection-container">
-            <div className="item-list">
-              <h4>Available Items</h4>
-              {availableItems.length === 0 ? (
-                <p>No items available</p>
-              ) : (
-                availableItems.map((item) => {
-                  const selectedItem = formData.selectedItems.find(si => si.itemId === item.id)
-                  const quantity = selectedItem ? selectedItem.quantity : 0
-                  return (
-                    <div key={item.id} className="item-row">
-                      <div className="item-info">
-                        <span className="item-name">{item.name}</span>
-                      </div>
-                      <div className="quantity-controls">
-                        <button
-                          type="button"
-                          className="quantity-btn"
-                          onClick={() => handleItemQuantityChange(item.id, Math.max(0, quantity - 1))}
-                          disabled={quantity === 0}
-                        >
-                          -
-                        </button>
-                        <span className="quantity-display">{quantity}</span>
-                        <button
-                          type="button"
-                          className="quantity-btn"
-                          onClick={() => handleItemQuantityChange(item.id, quantity + 1)}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-            <div className="selected-items-summary">
-              <h4>Selected Items</h4>
-              {formData.selectedItems.length === 0 ? (
-                <p>No items selected</p>
-              ) : (
-                <div className="selected-items-list">
-                  {formData.selectedItems.map((selectedItem) => (
-                    <div key={selectedItem.itemId} className="selected-item">
-                      <span>{selectedItem.name} x{selectedItem.quantity}</span>
-                    </div>
-                  ))}
+        {/* MODAL */}
+        {showModal && selectedToken && (
+          <div className="ccd-modal-overlay" onClick={() => setShowModal(false)}>
+            <div className="ccd-modal" onClick={e => e.stopPropagation()}>
+              <div className="ccd-modal-head">
+                <h2>Token Details</h2>
+                <button className="ccd-close-btn" onClick={() => setShowModal(false)}>✕</button>
+              </div>
+              <div className="ccd-modal-body">
+                {[
+                  ['🎫 Token Number', selectedToken.dailyTokenId || selectedToken.tokenId],
+                  ['🏪 Counter', `Counter ${activeCounter}`],
+                  ['🪑 Cabin', selectedToken.cabin || selectedToken.cabinId || selectedToken.cabinNo || 'Not Assigned'],
+                  ['👤 Customer', selectedToken.customerName],
+                  ['📱 Mobile', selectedToken.mobileNo],
+                  ['🛒 Items', Array.isArray(selectedToken.item) ? selectedToken.item.join(', ') : selectedToken.item],
+                  ['💰 Amount', `₹${selectedToken.amount}`],
+                  ['⏰ Created', new Date(selectedToken.createdAt).toLocaleString()],
+                ].map(([label, val]) => (
+                  <div key={label} className="ccd-detail-row">
+                    <span className="ccd-detail-label">{label}</span>
+                    <span className="ccd-detail-val">{val}</span>
+                  </div>
+                ))}
+                <div className="ccd-detail-row">
+                  <span className="ccd-detail-label">📊 Status</span>
+                  <span className={`ccd-status-badge ${selectedToken.status.toLowerCase()}`}>{selectedToken.status}</span>
                 </div>
-              )}
+              </div>
             </div>
           </div>
+        )}
+
+        {/* COMPLETED */}
+        <div className="ccd-section done-sec">
+          <h3>✅ Completed Today</h3>
+          {completed.length === 0 ? (
+            <div className="ccd-empty">
+              <span className="ccd-empty-icon">📋</span>
+              <p>No completed tokens today</p>
+              <small>Start serving customers to see completed tokens here.</small>
+            </div>
+          ) : (
+            <div className="ccd-list">
+              {completed.slice(0, 10).map(t => (
+                <div key={t._id || t.tokenId} className="ccd-token-item completed">
+                  <div className="ccd-item-header">
+                    <div className="ccd-item-num">{t.dailyTokenId || t.tokenId}</div>
+                    <span className="ccd-time-badge">{t.completedAt ? new Date(t.completedAt).toLocaleTimeString() : 'N/A'}</span>
+                  </div>
+                  <div className="ccd-item-info">
+                    <div>
+                      <p><strong>👤 Customer:</strong> {t.customerName}</p>
+                      <p><strong>📱 Mobile:</strong> {t.mobileNo}</p>
+                      <p><strong>🛒 Items:</strong> {Array.isArray(t.item) ? t.item.join(', ') : t.item}</p>
+                      <p><strong>💰 Amount:</strong> ₹{t.amount}</p>
+                      <p><strong>🪑 Cabin:</strong> {t.cabin || t.cabinNo || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p><strong>⏰ Created:</strong> {new Date(t.createdAt).toLocaleTimeString()}</p>
+                      <p><strong>🏪 Vendor:</strong> {t.vendorId?.name || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className={`ccd-item-status ${t.status.toLowerCase()}`}>{t.status.toUpperCase()}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="paymentMode">Payment Mode *</label>
-          <select
-            id="paymentMode"
-            name="paymentMode"
-            value={formData.paymentMode}
-            onChange={handleInputChange}
-            required
-            disabled={isLoading}
-          >
-            <option value="">Select Payment Mode</option>
-            <option value="cash">Cash</option>
-            <option value="card">Credit Card</option>
-            <option value="upi">UPI</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="amount">Amount (₹) *</label>
-          <input
-            type="number"
-            id="amount"
-            name="amount"
-            value={formData.amount}
-            onChange={handleInputChange}
-            placeholder="Enter amount"
-            min="0.01"
-            step="0.01"
-            required
-            disabled={isLoading}
-            className={errors.amount ? 'error' : ''}
-          />
-          {errors.amount && <span className="error-text">{errors.amount}</span>}
-        </div>
-
-        <button
-          type="submit"
-          className="submit-button"
-          disabled={isLoading || !selectedCounterId || availableCabins.length === 0}
-        >
-          {isLoading ? 'Generating Token...' : 'Generate Token'}
-        </button>
-        {!selectedCounterId && <small style={{ display: 'block', textAlign: 'center', color: '#ef4444', marginTop: '8px' }}>⚠️ Please select a counter.</small>}
-      </form>
-    </div>
-  )
+      </div>
+    </>
+  );
 }
 
-export default CustomerDashboard
+export default CustomerCounterDashboard;

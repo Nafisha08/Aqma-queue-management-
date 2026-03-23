@@ -39,14 +39,10 @@ function UserManagement({ vendorId: propVendorId }) {
   const fetchVendorCounter = async () => {
     if (currentUser?.role === 'vendor' && vendorId) {
       try {
-        console.log('🔍 Fetching counters for vendor:', vendorId);
-
         const response = await axios.get(
           `https://aqma-queue-management-1.onrender.com/api/counters`,
           { headers: authHeaders() }
         );
-
-        console.log('📦 All counters response:', response.data);
 
         if (response.data.success && response.data.counters) {
           const vendorCounters = response.data.counters.filter(counter => {
@@ -56,35 +52,20 @@ function UserManagement({ vendorId: propVendorId }) {
             } else {
               counterVendorId = counter.vendorId;
             }
-
-            console.log('🔎 Counter Details:', {
-              name: counter.name,
-              counterVendorId: counterVendorId,
-              expectedVendorId: vendorId,
-              status: counter.status,
-              match: counterVendorId === vendorId
-            });
             return counterVendorId === vendorId && counter.status === 'active';
           });
 
-          console.log('✅ Filtered vendor counters:', vendorCounters);
-          console.log('✅ Total counters found:', vendorCounters.length);
-
           if (vendorCounters.length > 0) {
             setVendorCounter(vendorCounters[0]);
-            console.log('✅ Set vendor counter:', vendorCounters[0].name);
             setError("");
           } else {
-            console.warn('⚠️ No counters found for vendor:', vendorId);
             setError('Please create a counter first before adding users.');
           }
         } else {
-          console.error('❌ Invalid response structure:', response.data);
           setError('Failed to load counter information');
         }
       } catch (error) {
         console.error("❌ Failed to load vendor counter:", error);
-        console.error("❌ Error details:", error.response?.data);
         setError('Failed to load counter information');
       }
     }
@@ -97,7 +78,6 @@ function UserManagement({ vendorId: propVendorId }) {
           `https://aqma-queue-management-1.onrender.com/api/counters`,
           { headers: authHeaders() }
         );
-
         if (response.data.success) {
           setCounters(response.data.counters.filter(counter => counter.status === 'active'));
         }
@@ -115,7 +95,6 @@ function UserManagement({ vendorId: propVendorId }) {
           `https://aqma-queue-management-1.onrender.com/api/cabins`,
           { headers: authHeaders() }
         );
-
         if (response.data.success) {
           setCabins(response.data.cabins.filter(cabin => cabin.isActive));
         }
@@ -129,14 +108,10 @@ function UserManagement({ vendorId: propVendorId }) {
   const fetchVendorCabin = async () => {
     if (currentUser?.role === 'vendor' && vendorId) {
       try {
-        console.log('🔍 Fetching cabins for vendor:', vendorId);
-
         const response = await axios.get(
           `https://aqma-queue-management-1.onrender.com/api/cabins`,
           { headers: authHeaders() }
         );
-
-        console.log('📦 All cabins response:', response.data);
 
         if (response.data.success) {
           const vendorCabins = response.data.cabins.filter(cabin => {
@@ -146,18 +121,11 @@ function UserManagement({ vendorId: propVendorId }) {
             } else {
               cabinVendorId = cabin.vendorId;
             }
-
-            console.log('Cabin:', cabin.name, 'VendorId:', cabinVendorId, 'Match:', cabinVendorId === vendorId);
             return cabinVendorId === vendorId && cabin.isActive;
           });
 
-          console.log('✅ Filtered vendor cabins:', vendorCabins);
-
           if (vendorCabins.length > 0) {
             setVendorCabin(vendorCabins[0]);
-            console.log('✅ Set vendor cabin:', vendorCabins[0].name);
-          } else {
-            console.warn('⚠️ No cabins found for vendor:', vendorId);
           }
         }
       } catch (error) {
@@ -183,7 +151,6 @@ function UserManagement({ vendorId: propVendorId }) {
         `https://aqma-queue-management-1.onrender.com/api/users/vendor/${vendorIdParam}`,
         { headers: authHeaders() }
       );
-
       if (response.data.success) {
         setUsers(response.data.users);
       } else {
@@ -197,66 +164,42 @@ function UserManagement({ vendorId: propVendorId }) {
     }
   };
 
-  // ✅ FIXED: Better error handling for vendor data fetch
   const fetchVendorData = async () => {
     try {
-      // ✅ Get role from currentUser or localStorage as fallback
       const userRole = currentUser?.role || localStorage.getItem('userRole');
-
-      console.log('🔍 Fetching vendor data for role:', userRole);
-
       let url;
       if (userRole === 'vendor') {
         url = `https://aqma-queue-management-1.onrender.com/api/vendor-management/profile`;
       } else if (userRole === 'superadmin' && vendorId) {
         url = `https://aqma-queue-management-1.onrender.com/api/vendor-management/vendors/${vendorId}`;
       } else {
-        // ✅ FIXED: Don't log undefined, just skip silently
-        console.log('⚠️ User role not vendor/superadmin:', userRole || 'undefined');
         setVendorData(null);
         return;
       }
 
-      console.log('📡 Fetching from URL:', url);
-
       const response = await axios.get(url, { headers: authHeaders() });
-
       if (response.data.success) {
         setVendorData(response.data.vendor);
-        console.log('✅ Vendor data loaded successfully');
       } else {
         setVendorData(null);
       }
     } catch (error) {
       console.error("❌ Failed to load vendor data:", error);
-      console.error("Error details:", error.response?.data);
       setVendorData(null);
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-
     if (name === 'userType') {
-      setFormData({
-        ...formData,
-        userType: value,
-        counterId: "",
-        cabinId: ""
-      });
+      setFormData({ ...formData, userType: value, counterId: "", cabinId: "" });
     } else {
       setFormData({ ...formData, [name]: value });
     }
   };
 
   const resetForm = () => {
-    setFormData({
-      name: "",
-      username: "",
-      userType: "counter",
-      counterId: "",
-      cabinId: "",
-    });
+    setFormData({ name: "", username: "", userType: "counter", counterId: "", cabinId: "" });
     setErrors({});
     setEditingUser(null);
   };
@@ -273,34 +216,19 @@ function UserManagement({ vendorId: propVendorId }) {
   };
 
   const handleEdit = (user) => {
-    console.log('📝 EDITING USER:', user);
-
     let userType = "counter";
-
     if (user.userType && Array.isArray(user.userType)) {
-      if (user.userType.includes("cabin")) {
-        userType = "cabin";
-      } else if (user.userType.includes("counter")) {
-        userType = "counter";
-      }
-      console.log('✅ UserType from array:', userType);
-    }
-    else if (user.cabinId && !user.counterId) {
+      if (user.userType.includes("cabin")) userType = "cabin";
+      else if (user.userType.includes("counter")) userType = "counter";
+    } else if (user.cabinId && !user.counterId) {
       userType = "cabin";
-      console.log('✅ UserType from cabinId:', userType);
     } else if (user.counterId && !user.cabinId) {
       userType = "counter";
-      console.log('✅ UserType from counterId:', userType);
-    }
-    else if (user.cabinName && !user.counterName) {
+    } else if (user.cabinName && !user.counterName) {
       userType = "cabin";
-      console.log('✅ UserType from cabinName:', userType);
     } else if (user.counterName && !user.cabinName) {
       userType = "counter";
-      console.log('✅ UserType from counterName:', userType);
     }
-
-    console.log('🎯 Final userType determined:', userType);
 
     setFormData({
       name: user.name || "",
@@ -315,53 +243,29 @@ function UserManagement({ vendorId: propVendorId }) {
   };
 
   const validateForm = () => {
-    console.log('🔍 VALIDATING FORM...');
     const newErrors = {};
-
     const phoneError = validatePhone(formData.username);
-    if (phoneError) {
-      console.log('❌ Phone Error:', phoneError);
-      newErrors.username = phoneError;
-    }
-
+    if (phoneError) newErrors.username = phoneError;
     setErrors(newErrors);
-    const isValid = Object.keys(newErrors).length === 0;
-    console.log('✅ Validation result:', isValid ? 'PASSED ✅' : 'FAILED ❌');
-    return isValid;
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    console.log('🚀 FORM SUBMITTED - START');
-    console.log('Form Data:', formData);
-    console.log('Vendor Counter:', vendorCounter);
-    console.log('Vendor Cabin:', vendorCabin);
-    console.log('Current User:', currentUser);
-    console.log('Editing User:', editingUser);
-
-    if (!validateForm()) {
-      console.log('❌ Validation failed - stopping');
-      return;
-    }
+    if (!validateForm()) return;
 
     if (currentUser?.role === 'vendor') {
       if (formData.userType === 'counter' && !vendorCounter) {
-        console.log('❌ No counter found - stopping');
         setError('Cannot create user. Please create a counter first.');
         return;
       }
       if (formData.userType === 'cabin' && !vendorCabin) {
-        console.log('❌ No cabin found - stopping');
         setError('Cannot create user. Please create a cabin first.');
         return;
       }
     }
 
-    console.log('✅ VALIDATION PASSED - Making API call...');
-
     setIsLoading(true);
-
     try {
       const userData = {
         name: formData.name,
@@ -370,48 +274,33 @@ function UserManagement({ vendorId: propVendorId }) {
       };
 
       if (editingUser) {
-        if (formData.userType === 'counter') {
-          userData.cabinId = null;
-          console.log('🔄 Clearing cabinId for counter user');
-        } else if (formData.userType === 'cabin') {
-          userData.counterId = null;
-          console.log('🔄 Clearing counterId for cabin user');
-        }
+        if (formData.userType === 'counter') userData.cabinId = null;
+        else if (formData.userType === 'cabin') userData.counterId = null;
       }
 
       if (currentUser?.role === 'vendor') {
         if (formData.userType === 'counter' && vendorCounter?._id) {
           userData.counterId = vendorCounter._id;
-          console.log('✅ Auto-assigning vendor counter:', vendorCounter._id);
         } else if (formData.userType === 'cabin' && vendorCabin?._id) {
           userData.cabinId = vendorCabin._id;
-          console.log('✅ Auto-assigning vendor cabin:', vendorCabin._id);
         }
       } else {
         if (formData.userType === 'counter' && formData.counterId) {
           userData.counterId = formData.counterId;
-          console.log('✅ Assigning selected counter:', formData.counterId);
         } else if (formData.userType === 'cabin' && formData.cabinId) {
           userData.cabinId = formData.cabinId;
-          console.log('✅ Assigning selected cabin:', formData.cabinId);
         }
       }
 
-      console.log('📤 Final user data to submit:', JSON.stringify(userData, null, 2));
-
       const vendorIdParam = vendorId || 'null';
-      console.log('🔗 API URL:', `https://aqma-queue-management-1.onrender.com/api/users/vendor/${vendorIdParam}`);
-
       let response;
       if (editingUser) {
-        console.log('📝 Updating existing user:', editingUser.id);
         response = await axios.put(
           `https://aqma-queue-management-1.onrender.com/api/users/vendor/${vendorIdParam}/${editingUser.id}`,
           userData,
           { headers: authHeaders() }
         );
       } else {
-        console.log('➕ Creating new user');
         response = await axios.post(
           `https://aqma-queue-management-1.onrender.com/api/users/vendor/${vendorIdParam}`,
           userData,
@@ -419,49 +308,34 @@ function UserManagement({ vendorId: propVendorId }) {
         );
       }
 
-      console.log('✅ API Response:', response.data);
-
       if (response.data.success) {
-        console.log('🎉 User saved successfully!');
         await fetchUsers();
         setShowForm(false);
         resetForm();
         setError("");
       } else {
-        console.log('⚠️ Response success false:', response.data);
         setError(response.data.message || "Failed to save user");
       }
-
     } catch (err) {
-      console.error('❌ Error saving user:', err);
-      console.error('❌ Error response:', err.response?.data);
-      console.error('❌ Error status:', err.response?.status);
-      console.error('❌ Error headers:', err.response?.headers);
-
       const errorMsg = err.response?.data?.message || "Failed to save user";
       setError(errorMsg);
-
       if (errorMsg.includes('counter') || errorMsg.includes('cabin') || errorMsg.includes('duplicate')) {
         alert(errorMsg);
       }
     } finally {
       setIsLoading(false);
-      console.log('🏁 Form submission completed');
     }
   };
 
   const handleDelete = async (userId) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
-
     try {
       const vendorIdParam = vendorId || 'null';
       const response = await axios.delete(
         `https://aqma-queue-management-1.onrender.com/api/users/vendor/${vendorIdParam}/${userId}`,
         { headers: authHeaders() }
       );
-      if (response.data.success) {
-        await fetchUsers();
-      }
+      if (response.data.success) await fetchUsers();
       setError("");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete user");
@@ -472,19 +346,12 @@ function UserManagement({ vendorId: propVendorId }) {
     try {
       const vendorIdParam = vendorId || 'null';
       const newStatus = user.isActive !== false ? false : true;
-
       const response = await axios.put(
         `https://aqma-queue-management-1.onrender.com/api/users/vendor/${vendorIdParam}/${user.id}`,
-        {
-          ...user,
-          isActive: newStatus
-        },
+        { ...user, isActive: newStatus },
         { headers: authHeaders() }
       );
-
-      if (response.data.success) {
-        await fetchUsers();
-      }
+      if (response.data.success) await fetchUsers();
       setError("");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update user status");
@@ -636,7 +503,6 @@ function UserManagement({ vendorId: propVendorId }) {
                     value={formData.counterId}
                     onChange={handleInputChange}
                     required
-                    className="counter-select"
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -649,9 +515,7 @@ function UserManagement({ vendorId: propVendorId }) {
                   >
                     <option value="">Select a counter</option>
                     {counters.map(counter => (
-                      <option key={counter._id} value={counter._id}>
-                        {counter.name}
-                      </option>
+                      <option key={counter._id} value={counter._id}>{counter.name}</option>
                     ))}
                   </select>
                 )}
@@ -689,7 +553,6 @@ function UserManagement({ vendorId: propVendorId }) {
                     value={formData.cabinId}
                     onChange={handleInputChange}
                     required
-                    className="cabin-select"
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -702,9 +565,7 @@ function UserManagement({ vendorId: propVendorId }) {
                   >
                     <option value="">Select a cabin</option>
                     {cabins.map(cabin => (
-                      <option key={cabin._id} value={cabin._id}>
-                        {cabin.name}
-                      </option>
+                      <option key={cabin._id} value={cabin._id}>{cabin.name}</option>
                     ))}
                   </select>
                 )}
@@ -718,11 +579,7 @@ function UserManagement({ vendorId: propVendorId }) {
               <button
                 type="button"
                 className="btn-cancel"
-                onClick={() => {
-                  setShowForm(false);
-                  resetForm();
-                  setError("");
-                }}
+                onClick={() => { setShowForm(false); resetForm(); setError(""); }}
               >
                 Cancel
               </button>
@@ -735,7 +592,6 @@ function UserManagement({ vendorId: propVendorId }) {
         <div className="loading">Loading...</div>
       ) : (() => {
         const userRoleUsers = users.filter(user => user.role === "user");
-
         return userRoleUsers.length === 0 ? (
           <div className="no-data">
             <div className="no-data-icon">👤</div>
@@ -743,7 +599,8 @@ function UserManagement({ vendorId: propVendorId }) {
             <p>No users with role "user" found</p>
           </div>
         ) : (
-          <div className="table-container" style={{
+          /* ✅ FIX: maxHeight value added */
+          <div className="user-management__table-container" style={{
             maxHeight: '500px',
             overflowY: 'auto',
             overflowX: 'auto',
@@ -806,9 +663,7 @@ function UserManagement({ vendorId: propVendorId }) {
                       </span>
                     </td>
                     <td className="actions">
-                      <button className="btn-edit" onClick={() => handleEdit(user)} disabled={isLoading}>
-                        Edit
-                      </button>
+                      <button className="btn-edit" onClick={() => handleEdit(user)} disabled={isLoading}>Edit</button>
                       <button
                         className={`btn-status ${user.isActive !== false ? 'deactivate' : 'activate'}`}
                         onClick={() => handleToggleStatus(user)}
@@ -816,9 +671,7 @@ function UserManagement({ vendorId: propVendorId }) {
                       >
                         {user.isActive !== false ? 'Deactivate' : 'Activate'}
                       </button>
-                      <button className="btn-delete" onClick={() => handleDelete(user.id)} disabled={isLoading}>
-                        Delete
-                      </button>
+                      <button className="btn-delete" onClick={() => handleDelete(user.id)} disabled={isLoading}>Delete</button>
                     </td>
                   </tr>
                 ))}
