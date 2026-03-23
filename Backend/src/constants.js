@@ -1,0 +1,1 @@
+export const DB_NAME = "token_management_system"

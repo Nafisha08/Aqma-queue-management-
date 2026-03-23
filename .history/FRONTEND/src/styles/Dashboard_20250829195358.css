@@ -1,0 +1,72 @@
+flex: 1;
+  padding: 30px;
+  height: auto;
+}
+=======
+.dashboard-content {
+  flex: 1;
+  padding: 30px;
+  height: auto;
+  overflow-x: hidden; /* Prevent horizontal scroll on content */
+}
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+.management-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 25px;
+  height: auto;
+}
+=======
+.management-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 25px;
+  height: auto;
+  overflow-x: hidden; /* Prevent horizontal scroll inside card */
+}
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+.table-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+=======
+.table-container {
+  overflow-x: hidden; /* Changed from auto to hidden to remove inner scrollbar */
+  overflow-y: visible; /* Allow vertical content to expand */
+  width: 100%;
+  max-width: 100%;
+}
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  table-layout: auto;
+  display: table;
+  min-width: 800px;
+}
+=======
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  table-layout: auto;
+  display: table;
+  /* Removed min-width to prevent overflow */
+  max-width: 100%;
+  word-wrap: break-word;
+}

@@ -1,0 +1,294 @@
+#root {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+.app-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #6e8efb, #a777e3);
+}
+
+.login-container {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+}
+
+.login-container h1 {
+  color: white;
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.login-box {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  padding: 2rem;
+  width: 100%;
+  max-width: 500px;
+}
+
+.login-box h2 {
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+  border-color: #6e8efb;
+  outline: none;
+}
+
+.login-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #6e8efb;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.login-button:hover {
+  background-color: #5a7df9;
+}
+
+.error-message {
+  color: #e74c3c;
+  margin-top: 1rem;
+}
+
+.success-message {
+  color: #2ecc71;
+  margin-top: 1rem;
+}
+
+.demo-section {
+  margin-top: 2rem;
+  border-top: 1px solid #eee;
+  padding-top: 1.5rem;
+}
+
+.demo-section h3 {
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.demo-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.demo-button {
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.demo-button:hover {
+  opacity: 0.9;
+}
+
+.superadmin-button {
+  background-color: #e74c3c;
+}
+
+.admin-button {
+  background-color: #3498db;
+}
+
+.vendor-button {
+  background-color: #9b59b6;
+}
+
+.user-button {
+  background-color: #2ecc71;
+}
+
+.dashboard {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  padding: 2rem;
+  width: 100%;
+  max-width: 800px;
+  text-align: center;
+}
+
+.dashboard h1 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.logout-button {
+  margin-top: 1.5rem;
+  padding: 10px 20px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+  background-color: #c0392b;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 1rem;
+  }
+
+  .login-container h1 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .login-box {
+    padding: 1.5rem;
+    max-width: 90%;
+  }
+
+  .login-box h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group input {
+    padding: 14px;
+    font-size: 1.1rem;
+  }
+
+  .login-button {
+    padding: 14px;
+    font-size: 1.1rem;
+  }
+
+  .demo-buttons {
+    gap: 1rem;
+  }
+
+  .demo-button {
+    padding: 12px;
+    font-size: 1rem;
+  }
+
+  .dashboard {
+    padding: 1.5rem;
+    max-width: 95%;
+  }
+
+  .dashboard h1 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 0.5rem;
+  }
+
+  .login-container h1 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .login-box {
+    padding: 1rem;
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  .login-box h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+
+  .input-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group input {
+    padding: 16px;
+    font-size: 1.2rem;
+    border-radius: 6px;
+  }
+
+  .login-button {
+    padding: 16px;
+    font-size: 1.2rem;
+    border-radius: 6px;
+  }
+
+  .demo-section {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+  }
+
+  .demo-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .demo-buttons {
+    gap: 1rem;
+  }
+
+  .demo-button {
+    padding: 16px;
+    font-size: 1.2rem;
+    border-radius: 8px;
+    min-height: 48px; /* Ensure touch-friendly minimum height */
+  }
+
+  .dashboard {
+    padding: 1rem;
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  .dashboard h1 {
+    font-size: 1.5rem;
+  }
+
+  .logout-button {
+    padding: 12px 24px;
+    font-size: 1.1rem;
+    border-radius: 6px;
+  }
+}

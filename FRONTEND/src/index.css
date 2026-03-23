@@ -1,0 +1,95 @@
+/* Add these styles to your existing CSS to fix the black dropdown */
+
+/* Fix autocomplete/datalist dropdown styling */
+input::-webkit-list-button {
+  background: white;
+  color: black;
+}
+
+input::-webkit-calendar-picker-indicator {
+  background: white;
+  color: black;
+}
+
+/* Fix datalist dropdown styling */
+datalist {
+  background: white !important;
+  color: black !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+datalist option {
+  background: white !important;
+  color: black !important;
+  padding: 8px 12px !important;
+}
+
+datalist option:hover {
+  background: #f3f4f6 !important;
+  color: black !important;
+}
+
+/* Fix browser's native autocomplete dropdown */
+input[type="text"]:-webkit-autofill,
+input[type="text"]:-webkit-autofill:hover,
+input[type="text"]:-webkit-autofill:focus,
+input[type="text"]:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: black !important;
+  background: white !important;
+  color: black !important;
+}
+
+/* Fix Chrome's autofill dropdown */
+input::-webkit-contacts-auto-fill-button {
+  background: white;
+  color: black;
+}
+
+/* Force white background for all form inputs */
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: white !important;
+  color: black !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.form-input-white {
+  background: white !important;
+  color: black !important;
+  border: 2px solid #e5e7eb !important;
+}
+
+.form-input-white:focus {
+  background: white !important;
+  color: black !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Fix select dropdown arrow */
+select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+/* Override any dark mode or theme styles */
+.form-container * {
+  color: black !important;
+}
+
+.form-container input,
+.form-container select,
+.form-container textarea,
+.form-container option {
+  background: white !important;
+  color: black !important;
+}
