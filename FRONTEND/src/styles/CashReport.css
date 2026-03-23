@@ -452,7 +452,7 @@
 /* ✅ FIX: Summary Cards — explicit grid forced */
 .summary-cards {
   display: grid !important;
-grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+grid-template-columns: repeat(4, 1fr) !important;
   gap: 20px !important;
   margin-bottom: 30px !important;
   width: 100% !important;
