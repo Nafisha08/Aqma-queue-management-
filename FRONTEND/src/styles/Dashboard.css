@@ -17,7 +17,7 @@ body {
   display: flex;
   height: 100vh;
   width: 100%;
-  overflow: hidden;
+ overflow-x: visible;
   background: #ffffff;
   position: relative;
 }
