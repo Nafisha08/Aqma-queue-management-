@@ -347,8 +347,17 @@ function CashReport({ vendorId: propVendorId }) {
             <p className="total-amount-subtitle">{reportData.overall.totalTokens} transactions</p>
           </div>
 
-          {/* ✅ FIX: <br/><div></div> hata diya — yeh grid tod raha tha */}
-          <div className="summary-cards">
+          {/* ✅ FIX: inline style — CSS override bypass */}
+          <div
+            className="summary-cards"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '20px',
+              width: '100%',
+              marginBottom: '30px'
+            }}
+          >
             <div className="summary-card">
               <div className="card-header">
                 <div className="card-icon total"><span>📈</span></div>
