@@ -280,7 +280,7 @@ function App() {
                       margin: '0 0 4px',
                       letterSpacing: '0.3px'
                     }}>
-                      Demo login — role select karein
+                      Demo login 
                     </p>
                     <p style={{
                       textAlign: 'center',
