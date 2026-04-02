@@ -16,13 +16,10 @@ import TokenManagement from './components/TokenManagement'
 import TokenSuccess from './components/TokenSuccess'
 import { Eye, EyeOff } from 'lucide-react'
 
-// Private Route Component to protect authenticated routes
 const PrivateRoute = ({ children, isLoggedIn }) => {
   return isLoggedIn ? children : <Navigate to="/" replace />
 }
 
-// Configure axios base URL only. Headers will be set per-request.
-// axios.defaults.baseURL = 'http://localhost:8000'
 axios.defaults.baseURL = import.meta.env.VITE_API_URL
 
 function App() {
@@ -36,162 +33,106 @@ function App() {
   const [vendorId, setVendorId] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Check for existing token on app load and validate it
   useEffect(() => {
     const validateToken = async () => {
       console.log('=== TOKEN VALIDATION START ===')
-
       try {
         const { token, user } = getCurrentSession()
-
         console.log('Token validation check:', {
           hasToken: !!token,
           hasUserData: !!user,
           tokenPreview: token ? token.substring(0, 20) + '...' : null
         })
-
         if (token && user) {
           console.log('Validating token with backend...')
-          console.log('Making request to:', axios.defaults.baseURL + '/api/auth/validate-token')
-
-          // Call API to validate token with shorter timeout
           const response = await axios.post('/api/auth/validate-token', {}, {
             headers: { Authorization: `Bearer ${token}` },
-            timeout: 3000 // 3 second timeout
+            timeout: 3000
           })
-
           console.log('Token validation successful:', response.data)
-
-          // If valid, set user info and logged in state
           setUsername(user.username)
           setUserRole(user.role)
           setVendorId(user.vendorId)
           setIsLoggedIn(true)
-          console.log('User authenticated, redirecting to dashboard')
         } else {
-          console.log('No token or user data found, user not authenticated')
           setIsLoggedIn(false)
         }
       } catch (error) {
-        console.log('Token validation failed:', {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-          message: error.message,
-          isNetworkError: !error.response,
-          code: error.code
-        })
-
-        // Token invalid, expired, or network error - clear storage and set logged out
+        console.log('Token validation failed:', error.message)
         clearCurrentSession()
         setIsLoggedIn(false)
-        console.log('Token cleared due to validation failure, user logged out')
-
-        // Show error message only if it's not a network error
-        if (!error.code?.includes('NETWORK') && !error.code?.includes('ECONNREFUSED') && error.response) {
-          console.log('Backend responded with error, showing error message')
-        } else {
-          console.log('Network error or server not reachable, proceeding to login page')
-        }
       } finally {
         console.log('=== TOKEN VALIDATION END ===')
         setLoading(false)
       }
     }
 
-    // Add a fallback timeout to ensure loading never gets stuck
     const fallbackTimeout = setTimeout(() => {
-      console.log('Fallback timeout reached, stopping loading')
       setLoading(false)
       setIsLoggedIn(false)
-    }, 5000) // 5 second fallback
+    }, 5000)
 
     validateToken().finally(() => {
       clearTimeout(fallbackTimeout)
     })
 
-    // Cleanup timeout on unmount
     return () => {
       clearTimeout(fallbackTimeout)
     }
   }, [])
+
+  // ✅ Demo credentials fill function
+  const fillDemo = (user, pass) => {
+    setUsername(user)
+    setPassword(pass)
+    setError('')
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
     setSuccess('')
 
-    console.log('=== FRONTEND LOGIN ATTEMPT ===')
-    console.log('Frontend: Making login request...')
-    console.log('API URL:', axios.defaults.baseURL + '/api/auth/login')
-    console.log('Request data:', { username, password })
-
     try {
       const response = await axios.post('/api/auth/login', {
         username,
         password
       }, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         withCredentials: true,
-        timeout: 10000 // 10 second timeout
+        timeout: 10000
       })
 
-      console.log('Frontend: Response received:', response.data)
-      console.log('Frontend: Response status:', response.status)
-
-      // Validate response structure
       if (!response.data.token || !response.data.user) {
         throw new Error('Invalid response structure from server')
       }
 
-      // ✅ Backend NEW response format with userType, cabin, and counter info
       setSuccess(response.data.message)
       setIsLoggedIn(true)
       setUserRole(response.data.user.role)
 
-      // Set vendorId if user is a vendor  
       if (response.data.user.role === 'vendor' && response.data.user.vendorId) {
         setVendorId(response.data.user.vendorId)
       }
 
-      // ✅ CRITICAL: Store complete user object with cabin/counter info
       setCurrentSession(response.data.user.role, response.data.token, response.data.user)
 
-      console.log('Frontend: Login successful, session stored')
-      console.log('Frontend: User data stored:', response.data.user)
-
     } catch (error) {
-      console.error('Frontend: Login error:', error)
-      console.error('Frontend: Error response:', error.response)
-      console.error('Frontend: Error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message,
-        code: error.code
-      })
-
-      // Enhanced error handling
       if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
         setError('Cannot connect to server. Please try again later.')
       } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
         setError('Request timeout. Server took too long to respond. Please try again.')
       } else if (error.response) {
-        // Server responded with error
         const errorMessage = error.response.data?.message ||
           error.response.data?.error ||
           `Server error (${error.response.status})`
         setError(errorMessage)
       } else {
-        // Network or other error
         setError('Login failed. Please check your connection and try again.')
       }
     }
   }
 
-  // Logout function
   const handleLogout = async () => {
     try {
       const { token } = getCurrentSession()
@@ -203,9 +144,7 @@ function App() {
       }
     } catch (error) {
       console.error('Logout error:', error)
-      // Don't show error to user, just proceed with logout
     } finally {
-      // Clear local storage and state regardless of API call result
       clearCurrentSession()
       setIsLoggedIn(false)
       setUsername('')
@@ -215,11 +154,10 @@ function App() {
     }
   }
 
-  // Enhanced loading screen
   if (loading) {
     return (
       <div className="app-container">
-        <div className="loading-container" style={{
+        <div style={{
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
@@ -259,11 +197,17 @@ function App() {
     )
   }
 
+  // Demo roles data
+  const demoRoles = [
+    { label: 'Vendor', user: '7777777771', pass: '12345', color: '#185FA5', bg: '#E6F1FB', border: '#B5D4F4', topBorder: '#378ADD' },
+    { label: 'Counter', user: '2222222224', pass: '12345', color: '#0F6E56', bg: '#E1F5EE', border: '#9FE1CB', topBorder: '#1D9E75' },
+    { label: 'Cabin', user: '2222222266', pass: '12345', color: '#534AB7', bg: '#EEEDFE', border: '#CECBF6', topBorder: '#7F77DD' },
+  ]
+
   return (
     <Router>
       <div className="app-container">
         <Routes>
-          {/* Login Route - redirect to dashboard if already logged in */}
           <Route path="/" element={
             isLoggedIn ? <Navigate to="/dashboard" replace /> : (
               <div className="login-container">
@@ -327,6 +271,61 @@ function App() {
                     </button>
                   </form>
 
+                  {/* ✅ Demo Credentials Section */}
+                  <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '16px' }}>
+                    <p style={{
+                      textAlign: 'center',
+                      fontSize: '18px',
+                      color: 'black',
+                      margin: '0 0 4px',
+                      letterSpacing: '0.3px'
+                    }}>
+                      Demo login — role select karein
+                    </p>
+                    <p style={{
+                      textAlign: 'center',
+                      fontSize: '15px',
+                      color: 'black',
+                      margin: '0 0 12px',
+                    }}>
+                      Password for all users: <strong style={{ color: '#888' }}>12345</strong>
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                      {demoRoles.map(({ label, user, pass, color, bg, border, topBorder }) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => fillDemo(user, pass)}
+                          style={{
+                            padding: '10px 6px',
+                            background: bg,
+                            color: color,
+                            border: `1px solid ${border}`,
+                            borderTop: `3px solid ${topBorder}`,
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'opacity 0.15s',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                        >
+                          <span style={{ fontSize: '13px' }}>{label}</span>
+                          <span style={{ fontSize: '10px', color: color, opacity: 0.7, fontFamily: 'monospace' }}>
+                            {user}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* ✅ End Demo Section */}
+
+
                   {error && <div className="error-message">{error}</div>}
                   {success && <div className="success-message">{success}</div>}
                 </div>
@@ -334,41 +333,24 @@ function App() {
             )
           } />
 
-          {/* Protected Dashboard Route */}
           <Route path="/dashboard" element={
             <PrivateRoute isLoggedIn={isLoggedIn}>
               {userRole === 'superadmin' ? (
-                <SuperAdminDashboard
-                  username={username}
-                  onLogout={handleLogout}
-                />
+                <SuperAdminDashboard username={username} onLogout={handleLogout} />
               ) : userRole === 'vendor' ? (
-                <VendorDashboard
-                  username={username}
-                  vendorId={vendorId}
-                  onLogout={handleLogout}
-                />
+                <VendorDashboard username={username} vendorId={vendorId} onLogout={handleLogout} />
               ) : userRole === 'user' ? (
-                <CustomerDashboard
-                  username={username}
-                  onLogout={handleLogout}
-                />
+                <CustomerDashboard username={username} onLogout={handleLogout} />
               ) : (
                 <div className="dashboard">
                   <h1>Welcome to the {userRole.toUpperCase()} Dashboard</h1>
                   <p>You have successfully logged in as {username}!</p>
-                  <button
-                    className="logout-button"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
+                  <button className="logout-button" onClick={handleLogout}>Logout</button>
                 </div>
               )}
             </PrivateRoute>
           } />
 
-          {/* ✅ Cabin Dashboard Route - NEW */}
           <Route path="/cabin-dashboard" element={
             <PrivateRoute isLoggedIn={isLoggedIn}>
               <CabinDashboard
@@ -378,7 +360,6 @@ function App() {
             </PrivateRoute>
           } />
 
-          {/* ✅ Counter Dashboard Route - NEW */}
           <Route path="/customer-counter" element={
             <PrivateRoute isLoggedIn={isLoggedIn}>
               <CustomerCounterDashboard
@@ -388,41 +369,28 @@ function App() {
             </PrivateRoute>
           } />
 
-          {/* ✅ Vendor Dashboard Route - EXPLICIT */}
           <Route path="/vendor-dashboard" element={
             <PrivateRoute isLoggedIn={isLoggedIn}>
-              <VendorDashboard
-                username={username}
-                vendorId={vendorId}
-                onLogout={handleLogout}
-              />
+              <VendorDashboard username={username} vendorId={vendorId} onLogout={handleLogout} />
             </PrivateRoute>
           } />
 
-          {/* ✅ Admin Dashboard Route - EXPLICIT */}
           <Route path="/admin-dashboard" element={
             <PrivateRoute isLoggedIn={isLoggedIn}>
-              <SuperAdminDashboard
-                username={username}
-                onLogout={handleLogout}
-              />
+              <SuperAdminDashboard username={username} onLogout={handleLogout} />
             </PrivateRoute>
           } />
 
-          {/* ✅ Receptionist Dashboard Route - NEW */}
           <Route path="/receptionist-dashboard" element={
             <PrivateRoute isLoggedIn={isLoggedIn}>
               <div className="dashboard">
                 <h1>Receptionist Dashboard</h1>
                 <p>Welcome {username}!</p>
-                <button className="logout-button" onClick={handleLogout}>
-                  Logout
-                </button>
+                <button className="logout-button" onClick={handleLogout}>Logout</button>
               </div>
             </PrivateRoute>
           } />
 
-          {/* Other protected routes */}
           <Route path="/token-form" element={
             <PrivateRoute isLoggedIn={isLoggedIn}>
               <TokenForm />
