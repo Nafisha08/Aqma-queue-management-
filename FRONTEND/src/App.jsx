@@ -199,9 +199,9 @@ function App() {
 
   // Demo roles data
   const demoRoles = [
-    { label: 'Vendor', user: '7777777771', pass: '12345', color: '#185FA5', bg: '#E6F1FB', border: '#B5D4F4', topBorder: '#378ADD' },
-    { label: 'Counter', user: '2222222224', pass: '12345', color: '#0F6E56', bg: '#E1F5EE', border: '#9FE1CB', topBorder: '#1D9E75' },
-    { label: 'Cabin', user: '2222222266', pass: '12345', color: '#534AB7', bg: '#EEEDFE', border: '#CECBF6', topBorder: '#7F77DD' },
+    { label: 'Vendor', user: '0000000001', pass: '12345', color: '#185FA5', bg: '#E6F1FB', border: '#B5D4F4', topBorder: '#378ADD' },
+    { label: 'Counter', user: '0000000002', pass: '12345', color: '#0F6E56', bg: '#E1F5EE', border: '#9FE1CB', topBorder: '#1D9E75' },
+    { label: 'Cabin', user: '0000000003', pass: '12345', color: '#534AB7', bg: '#EEEDFE', border: '#CECBF6', topBorder: '#7F77DD' },
   ]
 
   return (
